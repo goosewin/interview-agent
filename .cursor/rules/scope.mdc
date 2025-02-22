@@ -1,0 +1,108 @@
+---
+description: 
+globs: 
+---
+## **1\. Dashboard (Minimal Version)**
+
+* **Purpose**: Provide a quick overview of ongoing interviews and candidates.  
+* **Must-Have Features**:  
+  1. **List of Scheduled Interviews** (just a simple table with date/time, candidate name, and status).  
+  2. **Quick Actions**:  
+     * Create new candidate  
+     * Create/schedule a new interview  
+  3. **User Authentication (Optional for Hackathon)**: If time allows, implement a simple login. Otherwise, keep it open for quick demos.
+
+---
+
+## **2\. Problem Management (Minimal Version)**
+
+* **Purpose**: Store coding questions and let the AI agent pick one randomly.  
+* **Must-Have Features**:  
+  1. **Basic CRUD**: Create, read, update, delete problems.  
+  2. **Difficulty Tag**: Simple field (e.g., “Easy,” “Medium,” “Hard”).  
+  3. **Random Selection API**: Endpoint or function so the AI agent can retrieve a random problem based on difficulty or from the entire set.
+
+---
+
+## **3\. Candidate Management (Minimal Version)**
+
+* **Purpose**: Track candidate information and associate them with interviews.  
+* **Must-Have Features**:  
+  1. **Create/Edit Candidate**: Name, email, brief notes.  
+  2. **Candidate List**: Show all candidates with filter/search by name or status.  
+  3. **Link to Interviews**: Each candidate can be assigned to one or more interviews.
+
+---
+
+## **4\. Interview Flow & Scheduling (Minimal Version)**
+
+* **Purpose**: Set up an interview with a candidate, generate a unique link, and tie it to a coding question.  
+* **Must-Have Features**:  
+  1. **Create Interview**: Choose candidate, date/time, pick a problem difficulty (or random).  
+  2. **Generate Interview Link**: A simple URL that the candidate can open to access the coding environment.  
+  3. **In-Progress Indicator**: When the candidate is active in the session, show a status (“Ongoing” or “Started”).
+
+---
+
+## **5\. AI Agent (Minimal Version)**
+
+* **Purpose**: Automatically provide a coding problem and (optionally) do lightweight scoring.  
+* **Must-Have Features**:  
+  1. **Random Problem Picker**: Pull a question from the Problem Bank.  
+  2. **Coding Environment**: A minimal in-browser code editor (could be a simple text area or a code editor widget like Monaco or ACE).  
+  3. **Session Flow**:  
+     * Display the selected problem.  
+     * Capture the candidate’s code input.  
+  4. **Optional**: Basic code-run functionality (test if code compiles or returns expected output for a single test case).
+
+---
+
+## **6\. Session Recording (Minimal Version)**
+
+* **Purpose**: Record the coding process for playback or at least track changes.  
+* **Must-Have Features**:  
+  1. **Change Log**: Store periodic snapshots of the candidate’s code (e.g., every X seconds or on code submit).  
+  2. **Simple Playback** (Optional): At the hackathon stage, even just logging code changes to a console or storing them in a database might suffice. Actual “video” screen recording is more complex—might be optional if short on time.
+
+---
+
+## **7\. Hiring Recommendation (Post-Interview Email)**
+
+* **Purpose**: Demonstrate automated communication and closure of the interview cycle.  
+* **Must-Have Features**:  
+  1. **Generate Simple Score/Recommendation**: Based on problem difficulty \+ AI’s basic correctness check.  
+  2. **Email Sending**: Trigger an email to the hiring manager (or a designated address) with a summary:  
+     * Candidate name  
+     * Problem attempted  
+     * Basic performance metric (passed / failed test, code completeness)  
+     * Recommendation: “Proceed” or “Needs Review.”  
+  3. **Email Template**: Hardcode a simple message template for the proof of concept.
+
+---
+
+## **Proposed Hackathon Architecture (High-Level)**
+
+1. **Front End**  
+   * **Tech Stack**: React, Vue, or a simple HTML/JS, depending on the team’s familiarity.  
+   * **Components**:  
+     * Dashboard (list of interviews, quick actions)  
+     * Interview setup form  
+     * Coding environment page (the interview link)  
+2. **Backend / API**  
+   * **Tech Stack**: Node.js/Express, Python/Flask, or any preferred lightweight framework.  
+   * **Endpoints**:  
+     * `POST /problems` & `GET /problems` (Problem Management)  
+     * `POST /candidates` & `GET /candidates` (Candidate Management)  
+     * `POST /interviews` & `GET /interviews` (Interview Scheduling)  
+     * `POST /interviews/:id/record` (Session logging / changes)  
+     * `POST /send-recommendation` (Trigger email)  
+3. **Database**  
+   * A simple relational DB (SQLite, PostgreSQL) or NoSQL (MongoDB) for speed of iteration.  
+   * Tables/Collections:  
+     * **Problems**: {id, title, description, difficulty, …}  
+     * **Candidates**: {id, name, email, …}  
+     * **Interviews**: {id, candidate\_id, problem\_id, scheduled\_time, status, …}  
+     * **SessionData** (optional, for code changes): {interview\_id, timestamp, code\_snapshot, …}  
+4. **Email Service**  
+   * Use a quick solution like [SendGrid](mdc:https:/sendgrid.com), [Mailgun](mdc:https:/www.mailgun.com), or NodeMailer for local dev.  
+   * Minimal integration: On interview completion, call an endpoint to send an email with the performance summary.

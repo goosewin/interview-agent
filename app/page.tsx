@@ -1,128 +1,53 @@
 'use client';
 
-import { Conversation } from '@/components/conversation';
-import { InterviewRecorder } from '@/lib/recording';
-import Editor from '@monaco-editor/react';
-import { useCallback, useRef, useState } from 'react';
-import Split from 'react-split';
-
-const languages = ['javascript', 'typescript', 'python', 'java', 'cpp', 'csharp'];
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function Home() {
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
-  const [code, setCode] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const recorderRef = useRef<InterviewRecorder | null>(null);
-
-  const startRecording = useCallback(async () => {
-    try {
-      recorderRef.current = new InterviewRecorder({
-        onError: (error) => {
-          console.error('Recording error:', error);
-          setIsRecording(false);
-        },
-      });
-      await recorderRef.current.startRecording();
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-    }
-  }, []);
-
-  const stopRecording = useCallback(async () => {
-    if (!recorderRef.current) return;
-
-    try {
-      const recording = await recorderRef.current.stopRecording();
-      setIsRecording(false);
-
-      // Create unique interview ID
-      const interviewId = crypto.randomUUID();
-
-      // Upload recording
-      const formData = new FormData();
-      formData.append('recording', recording, 'recording.webm');
-      formData.append('interviewId', interviewId);
-
-      const response = await fetch('/api/recording', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload recording');
-      }
-
-      const result = await response.json();
-      console.log('Recording uploaded:', result);
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-    }
-  }, []);
-
   return (
-    <main className="w-full h-screen text-white bg-gray-900">
-      <Split
-        className="flex h-full split"
-        sizes={[40, 60]}
-        minSize={[200, 400]}
-        gutterSize={4}
-        gutterStyle={() => ({
-          backgroundColor: '#4a5568',
-          cursor: 'col-resize',
-        })}
-      >
-        <div className="h-full p-6 overflow-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">Problem Description</h1>
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`rounded px-4 py-2 font-semibold ${isRecording
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-green-600 hover:bg-green-700'
-                }`}
-            >
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
-            </button>
-          </div>
-          <div className="prose prose-invert">
-            <p>Sample problem description...</p>
-            <Conversation />
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-4xl p-4 space-y-4">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">AI Technical Interviewer</h1>
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
         </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>For Hiring Managers</CardTitle>
+              <CardDescription>Looking to manage jobs and interviews? Log in to access your dashboard.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SignedIn>
+                <Button asChild className="w-full">
+                  <Link href="/dashboard">Go to Dashboard</Link>
+                </Button>
+              </SignedIn>
+              <SignedOut>
+                <Button asChild className="w-full">
+                  <Link href="/sign-in">Login to Hiring Portal</Link>
+                </Button>
+              </SignedOut>
+            </CardContent>
+          </Card>
 
-        <div className="flex flex-col h-full">
-          <div className="flex justify-end p-2 bg-gray-800">
-            <select
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-              className="px-3 py-1 text-white bg-gray-700 border border-gray-600 rounded"
-            >
-              {languages.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1">
-            <Editor
-              height="100%"
-              language={selectedLanguage}
-              value={code}
-              onChange={(value) => setCode(value || '')}
-              theme="vs-dark"
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-              }}
-            />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>For Interviewees</CardTitle>
+              <CardDescription>Taking an interview? Enter your interview ID to join.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input placeholder="Enter Interview ID" />
+              <Button className="w-full">Join Interview</Button>
+            </CardContent>
+          </Card>
         </div>
-      </Split>
-    </main>
-  );
+      </div>
+    </div>
+  )
 }
