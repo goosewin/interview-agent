@@ -22,7 +22,8 @@
     "posthog-js": "^1.223.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-split": "^2.0.14"
+    "react-split": "^2.0.14",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
