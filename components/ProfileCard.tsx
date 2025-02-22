@@ -1,18 +1,18 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { useClerk, useUser } from "@clerk/nextjs";
-import { LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useClerk, useUser } from '@clerk/nextjs';
+import { LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export function ProfileCard() {
   const { user } = useUser();
@@ -25,21 +25,22 @@ export function ProfileCard() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/");
+    router.push('/');
   };
 
-  const initials = user.fullName
-    ?.split(" ")
-    .map(n => n[0])
-    .join("")
-    .toUpperCase() || "??";
+  const initials =
+    user.fullName
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase() || '??';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative w-8 h-8 rounded-full">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={user.imageUrl} alt={user.fullName || "Profile"} />
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user.imageUrl} alt={user.fullName || 'Profile'} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
@@ -66,7 +67,7 @@ export function ProfileCard() {
         </DropdownMenuGroup> */}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
-          <LogOut className="w-4 h-4 mr-2" />
+          <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

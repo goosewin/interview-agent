@@ -31,10 +31,7 @@ export async function getCandidate(id: string, userId: string) {
 }
 
 export async function createCandidate(data: NewCandidate) {
-  const [candidate] = await db
-    .insert(candidates)
-    .values(data)
-    .returning();
+  const [candidate] = await db.insert(candidates).values(data).returning();
   return candidate;
 }
 
@@ -69,10 +66,7 @@ export async function createInterview(data: NewInterview) {
 }
 
 export async function getInterview(id: string) {
-  const [interview] = await db
-    .select()
-    .from(interviews)
-    .where(eq(interviews.id, id));
+  const [interview] = await db.select().from(interviews).where(eq(interviews.id, id));
   return interview;
 }
 
@@ -93,23 +87,12 @@ export async function getInterviewMessages(interviewId: string) {
     .orderBy(messages.createdAt);
 }
 
-export async function addMessage(
-  interviewId: string,
-  role: 'user' | 'assistant',
-  content: string
-) {
-  const [message] = await db
-    .insert(messages)
-    .values({ interviewId, role, content })
-    .returning();
+export async function addMessage(interviewId: string, role: 'user' | 'assistant', content: string) {
+  const [message] = await db.insert(messages).values({ interviewId, role, content }).returning();
   return message;
 }
 
-export async function addCodeSubmission(
-  interviewId: string,
-  code: string,
-  language: string
-) {
+export async function addCodeSubmission(interviewId: string, code: string, language: string) {
   const [submission] = await db
     .insert(codeSubmissions)
     .values({ interviewId, code, language })
@@ -156,4 +139,4 @@ export async function stopRecording(interviewId: string, recordingUrl: string) {
     recordingUrl,
     duration,
   });
-} 
+}

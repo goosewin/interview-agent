@@ -1,16 +1,14 @@
 'use client';
 
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useSignIn } from "@clerk/nextjs";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useSignIn } from '@clerk/nextjs';
+import Image from 'next/image';
+import { useState } from 'react';
 
 export default function AuthenticationPage() {
   const { isLoaded, signIn } = useSignIn();
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   if (!isLoaded) {
     return null;
@@ -21,13 +19,13 @@ export default function AuthenticationPage() {
     setIsLoading(true);
 
     try {
-      const result = await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/dashboard',
       });
     } catch (err) {
-      console.error("Error:", err);
+      console.error('Error:', err);
       setIsLoading(false);
     }
   }
@@ -71,8 +69,8 @@ export default function AuthenticationPage() {
           <div className="relative z-20 mt-auto">
             <blockquote className="space-y-2">
               <p className="text-lg">
-                &ldquo;This platform has revolutionized our technical interview process, making it more efficient and
-                consistent.&rdquo;
+                &ldquo;This platform has revolutionized our technical interview process, making it
+                more efficient and consistent.&rdquo;
               </p>
               <footer className="text-sm">Sofia Davis</footer>
             </blockquote>
@@ -87,8 +85,8 @@ export default function AuthenticationPage() {
             <button
               onClick={handleGoogleSignIn}
               className={cn(
-                buttonVariants({ variant: "outline" }),
-                "w-full bg-background hover:bg-accent"
+                buttonVariants({ variant: 'outline' }),
+                'w-full bg-background hover:bg-accent'
               )}
               disabled={isLoading}
             >

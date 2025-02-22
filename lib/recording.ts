@@ -33,10 +33,7 @@ export class InterviewRecorder {
       });
 
       // Combine the streams
-      const tracks = [
-        ...screenStream.getTracks(),
-        ...audioStream.getAudioTracks(),
-      ];
+      const tracks = [...screenStream.getTracks(), ...audioStream.getAudioTracks()];
       this.stream = new MediaStream(tracks);
 
       // Create MediaRecorder
@@ -97,4 +94,4 @@ export class InterviewRecorder {
   isRecording(): boolean {
     return this.mediaRecorder?.state === 'recording';
   }
-} 
+}

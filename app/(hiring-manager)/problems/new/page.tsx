@@ -1,60 +1,74 @@
-"use client"
+'use client';
 
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 const formSchema = z.object({
   title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
+    message: 'Title must be at least 2 characters.',
   }),
   description: z.string().min(10, {
-    message: "Description must be at least 10 characters.",
+    message: 'Description must be at least 10 characters.',
   }),
-  difficulty: z.enum(["easy", "medium", "hard"], {
-    required_error: "Please select a difficulty level.",
+  difficulty: z.enum(['easy', 'medium', 'hard'], {
+    required_error: 'Please select a difficulty level.',
   }),
   sampleInput: z.string().optional(),
   sampleOutput: z.string().optional(),
-})
+});
 
 export default function NewProblem() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      difficulty: "medium",
-      sampleInput: "",
-      sampleOutput: "",
+      title: '',
+      description: '',
+      difficulty: 'medium',
+      sampleInput: '',
+      sampleOutput: '',
     },
-  })
+  });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
+    setIsLoading(true);
     // Here you would typically send the data to your API
-    console.log(values)
+    console.log(values);
     setTimeout(() => {
-      setIsLoading(false)
-      router.push("/problems")
-    }, 1000)
+      setIsLoading(false);
+      router.push('/problems');
+    }, 1000);
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Add New Problem</h1>
-        <Button variant="outline" onClick={() => router.push("/problems")}>
+        <Button variant="outline" onClick={() => router.push('/problems')}>
           Back to Problems
         </Button>
       </div>
@@ -95,7 +109,9 @@ You can return the answer in any order.
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>Enter the description of the problem using markdown.</FormDescription>
+                <FormDescription>
+                  Enter the description of the problem using markdown.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -118,7 +134,9 @@ You can return the answer in any order.
                     <SelectItem value="hard">Hard</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormDescription>Please select the difficulty level of the problem.</FormDescription>
+                <FormDescription>
+                  Please select the difficulty level of the problem.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -152,10 +170,10 @@ You can return the answer in any order.
             )}
           />
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Problem"}
+            {isLoading ? 'Creating...' : 'Create Problem'}
           </Button>
         </form>
       </Form>
     </div>
-  )
+  );
 }

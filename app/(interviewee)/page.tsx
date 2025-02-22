@@ -95,9 +95,9 @@ export default function Home() {
   }, [interviewId]);
 
   return (
-    <main className="w-full h-screen text-white bg-gray-900">
+    <main className="h-screen w-full bg-gray-900 text-white">
       <Split
-        className="flex h-full split"
+        className="split flex h-full"
         sizes={[40, 60]}
         minSize={[200, 400]}
         gutterSize={4}
@@ -106,15 +106,14 @@ export default function Home() {
           cursor: 'col-resize',
         })}
       >
-        <div className="h-full p-6 overflow-auto">
-          <div className="flex items-center justify-between mb-4">
+        <div className="h-full overflow-auto p-6">
+          <div className="mb-4 flex items-center justify-between">
             <h1 className="text-2xl font-bold">Problem Description</h1>
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              className={`rounded px-4 py-2 font-semibold ${isRecording
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-green-600 hover:bg-green-700'
-                }`}
+              className={`rounded px-4 py-2 font-semibold ${
+                isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
               {isRecording ? 'Stop Recording' : 'Start Recording'}
             </button>
@@ -125,12 +124,12 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex flex-col h-full">
-          <div className="flex justify-end p-2 bg-gray-800">
+        <div className="flex h-full flex-col">
+          <div className="flex justify-end bg-gray-800 p-2">
             <select
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
-              className="px-3 py-1 text-white bg-gray-700 border border-gray-600 rounded"
+              className="rounded border border-gray-600 bg-gray-700 px-3 py-1 text-white"
             >
               {languages.map((lang) => (
                 <option key={lang} value={lang}>

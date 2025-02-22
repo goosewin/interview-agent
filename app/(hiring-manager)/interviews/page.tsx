@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,71 +8,83 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MoreHorizontal } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState } from "react"
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 type Interview = {
-  id: string
-  candidateId: string
-  scheduledFor: string
-  status: "not_started" | "in_progress" | "completed" | "cancelled"
+  id: string;
+  candidateId: string;
+  scheduledFor: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
   metadata: {
-    difficulty: "easy" | "medium" | "hard"
-  }
-}
+    difficulty: 'easy' | 'medium' | 'hard';
+  };
+};
 
 export default function Interviews() {
-  const [interviews, setInterviews] = useState<Interview[]>([])
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
-  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    fetchInterviews()
-  }, [])
+    fetchInterviews();
+  }, []);
 
   async function fetchInterviews() {
     try {
-      const response = await fetch("/api/interviews")
-      if (!response.ok) throw new Error("Failed to fetch interviews")
-      const data = await response.json()
-      setInterviews(data)
+      const response = await fetch('/api/interviews');
+      if (!response.ok) throw new Error('Failed to fetch interviews');
+      const data = await response.json();
+      setInterviews(data);
     } catch (error) {
-      console.error("Error fetching interviews:", error)
+      console.error('Error fetching interviews:', error);
     }
   }
 
   async function cancelInterview(id: string) {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const response = await fetch(`/api/interviews/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "cancelled" }),
-      })
-      if (!response.ok) throw new Error("Failed to cancel interview")
-      await fetchInterviews()
-      setIsCancelDialogOpen(false)
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+      if (!response.ok) throw new Error('Failed to cancel interview');
+      await fetchInterviews();
+      setIsCancelDialogOpen(false);
     } catch (error) {
-      console.error("Error cancelling interview:", error)
+      console.error('Error cancelling interview:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Interviews</h1>
         <Button asChild>
           <Link href="/interviews/new">Schedule New Interview</Link>
         </Button>
       </div>
-      <div className="border rounded-lg">
+      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -86,7 +98,7 @@ export default function Interviews() {
           </TableHeader>
           <TableBody>
             {interviews.map((interview) => {
-              const date = new Date(interview.scheduledFor)
+              const date = new Date(interview.scheduledFor);
               return (
                 <TableRow key={interview.id}>
                   <TableCell>{interview.candidateId}</TableCell>
@@ -108,9 +120,9 @@ export default function Interviews() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={(e) => {
-                            e.preventDefault()
-                            setSelectedInterview(interview)
-                            setIsCancelDialogOpen(true)
+                            e.preventDefault();
+                            setSelectedInterview(interview);
+                            setIsCancelDialogOpen(true);
                           }}
                         >
                           Cancel
@@ -119,7 +131,7 @@ export default function Interviews() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              )
+              );
             })}
           </TableBody>
         </Table>
@@ -138,10 +150,12 @@ export default function Interviews() {
                 <strong>Candidate:</strong> {selectedInterview.candidateId}
               </p>
               <p>
-                <strong>Date:</strong> {new Date(selectedInterview.scheduledFor).toLocaleDateString()}
+                <strong>Date:</strong>{' '}
+                {new Date(selectedInterview.scheduledFor).toLocaleDateString()}
               </p>
               <p>
-                <strong>Time:</strong> {new Date(selectedInterview.scheduledFor).toLocaleTimeString()}
+                <strong>Time:</strong>{' '}
+                {new Date(selectedInterview.scheduledFor).toLocaleTimeString()}
               </p>
             </div>
           )}
@@ -154,11 +168,11 @@ export default function Interviews() {
               onClick={() => selectedInterview && cancelInterview(selectedInterview.id)}
               disabled={isLoading}
             >
-              {isLoading ? "Cancelling..." : "Cancel Interview"}
+              {isLoading ? 'Cancelling...' : 'Cancel Interview'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

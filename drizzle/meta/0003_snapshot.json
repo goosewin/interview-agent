@@ -143,12 +143,8 @@
           "name": "code_submissions_interview_id_interviews_id_fk",
           "tableFrom": "code_submissions",
           "tableTo": "interviews",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["interview_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -313,12 +309,8 @@
           "name": "messages_interview_id_interviews_id_fk",
           "tableFrom": "messages",
           "tableTo": "interviews",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["interview_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -334,12 +326,7 @@
     "public.interview_status": {
       "name": "interview_status",
       "schema": "public",
-      "values": [
-        "not_started",
-        "in_progress",
-        "completed",
-        "cancelled"
-      ]
+      "values": ["not_started", "in_progress", "completed", "cancelled"]
     }
   },
   "schemas": {},

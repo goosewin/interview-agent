@@ -86,12 +86,8 @@
           "name": "candidates_user_id_users_id_fk",
           "tableFrom": "candidates",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -157,12 +153,8 @@
           "name": "code_submissions_interview_id_interviews_id_fk",
           "tableFrom": "code_submissions",
           "tableTo": "interviews",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["interview_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -282,12 +274,8 @@
           "name": "interviews_user_id_users_id_fk",
           "tableFrom": "interviews",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -341,12 +329,8 @@
           "name": "messages_interview_id_interviews_id_fk",
           "tableFrom": "messages",
           "tableTo": "interviews",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["interview_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -402,9 +386,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -416,12 +398,7 @@
     "public.interview_status": {
       "name": "interview_status",
       "schema": "public",
-      "values": [
-        "not_started",
-        "in_progress",
-        "completed",
-        "cancelled"
-      ]
+      "values": ["not_started", "in_progress", "completed", "cancelled"]
     }
   },
   "schemas": {},

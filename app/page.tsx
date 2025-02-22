@@ -1,26 +1,28 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import Link from "next/link";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-4xl p-4 space-y-4">
-        <div className="flex justify-between items-center mb-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="w-full max-w-4xl space-y-4 p-4">
+        <div className="mb-8 flex items-center justify-between">
           <h1 className="text-4xl font-bold">AI Technical Interviewer</h1>
           <SignedIn>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
         </div>
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>For Hiring Managers</CardTitle>
-              <CardDescription>Looking to manage jobs and interviews? Log in to access your dashboard.</CardDescription>
+              <CardDescription>
+                Looking to manage jobs and interviews? Log in to access your dashboard.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <SignedIn>
@@ -39,7 +41,9 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>For Interviewees</CardTitle>
-              <CardDescription>Taking an interview? Enter your interview ID to join.</CardDescription>
+              <CardDescription>
+                Taking an interview? Enter your interview ID to join.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input placeholder="Enter Interview ID" />
@@ -49,5 +53,5 @@ export default function Home() {
         </div>
       </div>
     </div>
-  )
+  );
 }

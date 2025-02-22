@@ -27,7 +27,7 @@
   width: 4px !important;
 }
 
-div[role="dialog"] {
+div[role='dialog'] {
   background-color: var(--background);
 }
 

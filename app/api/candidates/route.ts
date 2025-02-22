@@ -1,11 +1,11 @@
-import { createCandidate, getCandidates } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { z } from "zod";
+import { createCandidate, getCandidates } from '@/lib/db';
+import { currentUser } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const createCandidateSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   notes: z.string().optional(),
   resumeUrl: z.string().url().optional(),
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   try {
     const user = await currentUser();
     if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const url = new URL(req.url);
@@ -25,8 +25,8 @@ export async function GET(req: Request) {
     const candidates = await getCandidates(user.id, includeArchived);
     return NextResponse.json(candidates);
   } catch (error) {
-    console.error("Failed to fetch candidates:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error('Failed to fetch candidates:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   try {
     const user = await currentUser();
     if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const body = await req.json();
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ errors: error.errors }, { status: 400 });
     }
-    console.error("Failed to create candidate:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error('Failed to create candidate:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
-} 
+}

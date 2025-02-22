@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { put } from '@vercel/blob';
 
 export const uploadFileToBlob = async (file: File) => {
   const { url } = await put(file.name, file, { access: 'public' });

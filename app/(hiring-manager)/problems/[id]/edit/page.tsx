@@ -1,65 +1,81 @@
-"use client"
+'use client';
 
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter } from "next/navigation"
-import { use, useState } from "react"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
+import { use, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 const formSchema = z.object({
   title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
+    message: 'Title must be at least 2 characters.',
   }),
   description: z.string().min(10, {
-    message: "Description must be at least 10 characters.",
+    message: 'Description must be at least 10 characters.',
   }),
-  difficulty: z.enum(["easy", "medium", "hard"], {
-    required_error: "Please select a difficulty level.",
+  difficulty: z.enum(['easy', 'medium', 'hard'], {
+    required_error: 'Please select a difficulty level.',
   }),
   sampleInput: z.string().optional(),
   sampleOutput: z.string().optional(),
-})
+});
 
 export default function EditProblem({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const {
+    /* id */
+  } = use(params);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   // In a real application, you would fetch the problem data here
   const problemData = {
-    title: "Two Sum",
+    title: 'Two Sum',
     description:
-      "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
-    difficulty: "easy" as const,
-    sampleInput: "[2, 7, 11, 15], 9",
-    sampleOutput: "[0, 1]",
-  }
+      'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
+    difficulty: 'easy' as const,
+    sampleInput: '[2, 7, 11, 15], 9',
+    sampleOutput: '[0, 1]',
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: problemData,
-  })
+  });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
+    setIsLoading(true);
     // Here you would typically send the data to your API
-    console.log(values)
+    console.log(values);
     setTimeout(() => {
-      setIsLoading(false)
-      router.push("/problems")
-    }, 1000)
+      setIsLoading(false);
+      router.push('/problems');
+    }, 1000);
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Edit Problem</h1>
-        <Button variant="outline" onClick={() => router.push("/problems")}>
+        <Button variant="outline" onClick={() => router.push('/problems')}>
           Back to Problems
         </Button>
       </div>
@@ -88,7 +104,9 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
                 <FormControl>
                   <Textarea {...field} className="min-h-[200px]" />
                 </FormControl>
-                <FormDescription>Enter the description of the problem using markdown.</FormDescription>
+                <FormDescription>
+                  Enter the description of the problem using markdown.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -111,7 +129,9 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
                     <SelectItem value="hard">Hard</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormDescription>Please select the difficulty level of the problem.</FormDescription>
+                <FormDescription>
+                  Please select the difficulty level of the problem.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -145,10 +165,10 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
             )}
           />
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Updating..." : "Update Problem"}
+            {isLoading ? 'Updating...' : 'Update Problem'}
           </Button>
         </form>
       </Form>
     </div>
-  )
+  );
 }

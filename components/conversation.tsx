@@ -11,7 +11,6 @@ export function Conversation() {
     onError: (error: Error) => console.error('Error:', error),
   });
 
-
   const startConversation = useCallback(async () => {
     try {
       // Request microphone permission
@@ -21,8 +20,6 @@ export function Conversation() {
       await conversation.startSession({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
       });
-
-      
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }
@@ -38,14 +35,14 @@ export function Conversation() {
         <button
           onClick={startConversation}
           disabled={conversation.status === 'connected'}
-          className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+          className="rounded bg-blue-500 px-4 py-2 text-white disabled:bg-gray-300"
         >
           Start Conversation
         </button>
         <button
           onClick={stopConversation}
           disabled={conversation.status !== 'connected'}
-          className="px-4 py-2 bg-red-500 text-white rounded disabled:bg-gray-300"
+          className="rounded bg-red-500 px-4 py-2 text-white disabled:bg-gray-300"
         >
           Stop Conversation
         </button>

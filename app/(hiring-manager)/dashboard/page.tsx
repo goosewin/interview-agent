@@ -1,12 +1,12 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Dashboard() {
   return (
     <div className="w-full">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <h1 className="mb-6 text-3xl font-bold">Dashboard</h1>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -33,6 +33,5 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
-

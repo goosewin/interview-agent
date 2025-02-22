@@ -4,7 +4,7 @@ export const interviewStatusEnum = pgEnum('interview_status', [
   'not_started',
   'in_progress',
   'completed',
-  'cancelled'
+  'cancelled',
 ]);
 
 export const candidates = pgTable('candidates', {
@@ -24,7 +24,9 @@ export const candidates = pgTable('candidates', {
 export const interviews = pgTable('interviews', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull(), // Clerk user ID
-  candidateId: uuid('candidate_id').references(() => candidates.id).notNull(),
+  candidateId: uuid('candidate_id')
+    .references(() => candidates.id)
+    .notNull(),
   status: interviewStatusEnum('status').notNull().default('not_started'),
   scheduledFor: timestamp('scheduled_for').notNull(),
   problemDescription: text('problem_description').notNull(),

@@ -4,10 +4,10 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem
-} from "@/components/ui/sidebar"
-import { Calendar, FileCode, Home, Users } from "lucide-react"
-import Link from "next/link"
+  SidebarMenuItem,
+} from '@/components/ui/sidebar';
+import { Calendar, FileCode, Home, Users } from 'lucide-react';
+import Link from 'next/link';
 
 export function AppSidebar() {
   return (
@@ -22,7 +22,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/dashboard">
-                <Home className="w-4 h-4 mr-2" />
+                <Home className="mr-2 h-4 w-4" />
                 <span>Dashboard</span>
               </Link>
             </SidebarMenuButton>
@@ -30,7 +30,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/candidates">
-                <Users className="w-4 h-4 mr-2" />
+                <Users className="mr-2 h-4 w-4" />
                 <span>Candidates</span>
               </Link>
             </SidebarMenuButton>
@@ -38,7 +38,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/interviews">
-                <Calendar className="w-4 h-4 mr-2" />
+                <Calendar className="mr-2 h-4 w-4" />
                 <span>Interviews</span>
               </Link>
             </SidebarMenuButton>
@@ -46,7 +46,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/problems">
-                <FileCode className="w-4 h-4 mr-2" />
+                <FileCode className="mr-2 h-4 w-4" />
                 <span>Problems</span>
               </Link>
             </SidebarMenuButton>
@@ -54,5 +54,5 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }

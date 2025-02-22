@@ -1,8 +1,8 @@
-"use client"
+'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -10,68 +10,81 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MoreHorizontal } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState } from "react"
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 type Candidate = {
-  id: string
-  name: string
-  email: string
-  status: string
-}
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+};
 
 export default function Candidates() {
-  const [candidates, setCandidates] = useState<Candidate[]>([])
-  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false)
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [showArchived, setShowArchived] = useState(false)
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
-    fetchCandidates()
-  }, [showArchived])
+    fetchCandidates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showArchived]);
 
   async function fetchCandidates() {
     try {
-      const url = new URL('/api/candidates', window.location.origin)
+      const url = new URL('/api/candidates', window.location.origin);
       if (showArchived) {
-        url.searchParams.set('includeArchived', 'true')
+        url.searchParams.set('includeArchived', 'true');
       }
-      const response = await fetch(url)
-      if (!response.ok) throw new Error('Failed to fetch candidates')
-      const data = await response.json()
-      setCandidates(data)
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch candidates');
+      const data = await response.json();
+      setCandidates(data);
     } catch (error) {
-      console.error('Error fetching candidates:', error)
+      console.error('Error fetching candidates:', error);
     }
   }
 
   async function archiveCandidate(id: string) {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const response = await fetch(`/api/candidates/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'archived' }),
-      })
-      if (!response.ok) throw new Error('Failed to archive candidate')
-      await fetchCandidates()
-      setIsArchiveDialogOpen(false)
+      });
+      if (!response.ok) throw new Error('Failed to archive candidate');
+      await fetchCandidates();
+      setIsArchiveDialogOpen(false);
     } catch (error) {
-      console.error('Error archiving candidate:', error)
+      console.error('Error archiving candidate:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <h1 className="text-3xl font-bold">Candidates</h1>
           <div className="flex items-center gap-2">
@@ -87,7 +100,7 @@ export default function Candidates() {
           <Link href="/candidates/new">Add New Candidate</Link>
         </Button>
       </div>
-      <div className="border rounded-lg">
+      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -103,12 +116,15 @@ export default function Candidates() {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarImage src={`https://avatar.vercel.sh/${candidate.email}`} alt={candidate.name} />
+                      <AvatarImage
+                        src={`https://avatar.vercel.sh/${candidate.email}`}
+                        alt={candidate.name}
+                      />
                       <AvatarFallback>
                         {candidate.name
-                          .split(" ")
+                          .split(' ')
                           .map((n) => n[0])
-                          .join("")}
+                          .join('')}
                       </AvatarFallback>
                     </Avatar>
                     {candidate.name}
@@ -119,9 +135,9 @@ export default function Candidates() {
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="w-8 h-8 p-0">
+                      <Button variant="ghost" className="h-8 w-8 p-0">
                         <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="w-4 h-4" />
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -130,9 +146,9 @@ export default function Candidates() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={(e) => {
-                          e.preventDefault()
-                          setSelectedCandidate(candidate)
-                          setIsArchiveDialogOpen(true)
+                          e.preventDefault();
+                          setSelectedCandidate(candidate);
+                          setIsArchiveDialogOpen(true);
                         }}
                       >
                         Archive
@@ -172,11 +188,11 @@ export default function Candidates() {
               onClick={() => selectedCandidate && archiveCandidate(selectedCandidate.id)}
               disabled={isLoading}
             >
-              {isLoading ? "Archiving..." : "Archive Candidate"}
+              {isLoading ? 'Archiving...' : 'Archive Candidate'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

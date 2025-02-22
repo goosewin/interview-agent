@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,32 +8,44 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MoreHorizontal } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Problems() {
   // This is dummy data. In a real application, you would fetch this from your API.
   const problems = [
-    { id: 1, title: "Two Sum", difficulty: "Easy" },
-    { id: 2, title: "Merge Intervals", difficulty: "Medium" },
-  ]
+    { id: 1, title: 'Two Sum', difficulty: 'Easy' },
+    { id: 2, title: 'Merge Intervals', difficulty: 'Medium' },
+  ];
 
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedProblem, setSelectedProblem] = useState<(typeof problems)[0] | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedProblem, setSelectedProblem] = useState<(typeof problems)[0] | null>(null);
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Problems</h1>
         <Button asChild>
           <Link href="/problems/new">Add New Problem</Link>
         </Button>
       </div>
-      <div className="border rounded-lg">
+      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -50,9 +62,9 @@ export default function Problems() {
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="w-8 h-8 p-0">
+                      <Button variant="ghost" className="h-8 w-8 p-0">
                         <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="w-4 h-4" />
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -61,9 +73,9 @@ export default function Problems() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={(e) => {
-                          e.preventDefault()
-                          setSelectedProblem(problem)
-                          setIsDeleteDialogOpen(true)
+                          e.preventDefault();
+                          setSelectedProblem(problem);
+                          setIsDeleteDialogOpen(true);
                         }}
                       >
                         Delete
@@ -102,8 +114,8 @@ export default function Problems() {
               variant="destructive"
               onClick={() => {
                 // Here you would typically send the delete request to your API
-                console.log(`Deleting problem ${selectedProblem?.id}`)
-                setIsDeleteDialogOpen(false)
+                console.log(`Deleting problem ${selectedProblem?.id}`);
+                setIsDeleteDialogOpen(false);
                 // Optionally, update the local state or refetch the problems
               }}
             >
@@ -113,5 +125,5 @@ export default function Problems() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

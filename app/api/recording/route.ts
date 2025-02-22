@@ -33,9 +33,6 @@ export async function POST(req: Request) {
     return NextResponse.json(blob);
   } catch (error) {
     console.error('Failed to handle recording:', error);
-    return NextResponse.json(
-      { error: 'Failed to handle recording' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to handle recording' }, { status: 500 });
   }
-} 
+}
