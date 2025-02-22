@@ -14,8 +14,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.1.13",
     "@11labs/react": "^0.0.7",
+    "@ai-sdk/openai": "^1.1.13",
     "@monaco-editor/react": "^4.7.0",
     "@neondatabase/serverless": "^0.10.4",
     "@radix-ui/react-slot": "^1.1.2",
