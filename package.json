@@ -7,19 +7,25 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate:pg",
     "db:push": "drizzle-kit push:pg",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.1.13",
     "@11labs/react": "^0.0.7",
     "@monaco-editor/react": "^4.7.0",
     "@neondatabase/serverless": "^0.10.4",
+    "ai": "^4.1.45",
     "drizzle-orm": "^0.39.3",
     "next": "15.1.7",
+    "posthog-js": "^1.223.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-split": "^2.0.14"
+    "react-split": "^2.0.14",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -30,6 +36,8 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
+    "prettier": "^3.5.2",
+    "prettier-plugin-tailwindcss": "^0.6.11",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },

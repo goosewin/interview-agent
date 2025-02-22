@@ -52,9 +52,11 @@ globs: *
 - **Performance Optimization:** Focus on minimizing latency in UI updates and API responses.
 
 ## Docs
-- https://orm.drizzle.team/docs
+- https://orm.drizzle.team/docs/
 - https://neon.tech/docs/
-- https://nextjs.org/docs
+- https://nextjs.org/docs/
+- https://sdk.vercel.ai/docs/
+- https://posthog.com/docs/
 
 ---
 *Follow these rules strictly to ensure code generation is efficient and aligned with our tech stack and project requirements.*

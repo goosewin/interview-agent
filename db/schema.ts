@@ -10,10 +10,12 @@ export const users = pgTable('users', {
 
 export const interviews = pgTable('interviews', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
+  userId: uuid('user_id')
+    .references(() => users.id)
+    .notNull(),
   problemDescription: text('problem_description').notNull(),
   code: text('code'),
   language: text('language').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}); 
+});

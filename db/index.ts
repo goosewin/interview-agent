@@ -10,4 +10,4 @@ export const db = drizzle(sql, { schema });
 export const createClient = () => {
   const sql = neon(process.env.DATABASE_URL!);
   return drizzle(sql, { schema });
-}; 
+};
