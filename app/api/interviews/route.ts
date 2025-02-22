@@ -14,10 +14,7 @@ export async function GET() {
     return NextResponse.json(results);
   } catch (error) {
     console.error('Failed to fetch interviews:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch interviews' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch interviews' }, { status: 500 });
   }
 }
 
@@ -28,9 +25,6 @@ export async function POST(request: Request) {
     return NextResponse.json(result[0]);
   } catch (error) {
     console.error('Failed to create interview:', error);
-    return NextResponse.json(
-      { error: 'Failed to create interview' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create interview' }, { status: 500 });
   }
-} 
+}

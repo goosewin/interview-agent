@@ -1,13 +1,22 @@
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { BarChart2, Eye, SettingsIcon as Functions, Layers, LayoutGrid, Settings, Users, X } from 'lucide-react'
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  BarChart2,
+  Eye,
+  SettingsIcon as Functions,
+  Layers,
+  LayoutGrid,
+  Settings,
+  Users,
+  X,
+} from 'lucide-react';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className="w-64 border-r bg-muted/10">
-        <div className="p-4 border-b">
+        <div className="border-b p-4">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-full bg-primary" />
             <span className="font-semibold">GenerativeAgent</span>
@@ -37,7 +46,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 Settings
               </Button>
             </nav>
-            <div className="pt-4 border-t">
+            <div className="border-t pt-4">
               <Button variant="ghost" className="w-full justify-start">
                 <Eye className="mr-2 h-4 w-4" />
                 Live preview
@@ -52,10 +61,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
-        <div className="flex-1 flex flex-col">
+      <div className="flex flex-1">
+        <div className="flex flex-1 flex-col">
           {/* Header */}
-          <header className="h-14 border-b px-4 flex items-center justify-between">
+          <header className="flex h-14 items-center justify-between border-b px-4">
             <h1 className="text-sm font-medium">Voice conversation</h1>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm">
@@ -71,7 +80,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Right Panel */}
         <div className="w-80 border-l">
-          <div className="h-14 border-b px-4 flex items-center">
+          <div className="flex h-14 items-center border-b px-4">
             <h2 className="font-medium">Conversation details</h2>
           </div>
           <div className="p-4">
@@ -90,5 +99,5 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
