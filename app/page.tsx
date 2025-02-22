@@ -1,6 +1,7 @@
 'use client';
 
-import { Conversation } from '@/component/conversation';
+
+import { Conversation } from '@/components/conversation';
 import Editor from '@monaco-editor/react';
 import { useState } from 'react';
 import Split from 'react-split';

@@ -19,9 +19,10 @@ export function Conversation() {
 
       // Start the conversation with your agent
       await conversation.startSession({
-        agentId: 'hGi8qn9gKdqWk20F0uBH', // Replace with your agent ID
+        agentId: process.env.NEXT_PUBLIC_AGENT_ID,
       });
 
+      
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }
