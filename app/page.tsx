@@ -1,5 +1,6 @@
 'use client';
 
+import { Conversation } from '@/component/conversation';
 import Editor from '@monaco-editor/react';
 import { useState } from 'react';
 import Split from 'react-split';
@@ -34,6 +35,7 @@ export default function Home() {
           <div className="prose prose-invert">
             {/* Add your problem description here */}
             <p>Sample problem description...</p>
+            <Conversation />
           </div>
         </div>
 
