@@ -1,6 +1,6 @@
 'use client';
 
-import { Conversation } from '@/components/conversation';
+import ChatView from '@/components/ChatView';
 import { InterviewRecorder } from '@/lib/recording';
 import Editor from '@monaco-editor/react';
 import { useCallback, useRef, useState } from 'react';
@@ -12,10 +12,28 @@ export default function Home() {
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   const [code, setCode] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [currentInterviewId, setCurrentInterviewId] = useState<string>();
   const recorderRef = useRef<InterviewRecorder | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
+          // Create new interview session
+    const response = await fetch('/api/interviews', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({
+         language: selectedLanguage,
+         problemDescription: "Sample problem description...",
+         status: 'active',
+       }),
+     });
+
+     if (!response.ok) {
+       throw new Error('Failed to create interview session');
+    }
+
+     const { id: interviewId } = await response.json();
+     setCurrentInterviewId(interviewId);
       recorderRef.current = new InterviewRecorder({
         onError: (error) => {
           console.error('Recording error:', error);
@@ -27,22 +45,20 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to start recording:', error);
     }
-  }, []);
+  }, [selectedLanguage]);
 
   const stopRecording = useCallback(async () => {
-    if (!recorderRef.current) return;
+    if (!recorderRef.current|| !currentInterviewId) return;
 
     try {
       const recording = await recorderRef.current.stopRecording();
       setIsRecording(false);
 
-      // Create unique interview ID
-      const interviewId = crypto.randomUUID();
 
       // Upload recording
       const formData = new FormData();
       formData.append('recording', recording, 'recording.webm');
-      formData.append('interviewId', interviewId);
+      formData.append('interviewId', currentInterviewId);
 
       const response = await fetch('/api/recording', {
         method: 'POST',
@@ -53,12 +69,23 @@ export default function Home() {
         throw new Error('Failed to upload recording');
       }
 
-      const result = await response.json();
-      console.log('Recording uploaded:', result);
+      // const result = await response.json();
+      // console.log('Recording uploaded:', result);
+
+
+           // Update interview with final code
+     await fetch(`/api/interviews/${currentInterviewId}`, {
+      method: 'PATCH',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+         code,
+         status: 'completed',
+       }),
+     });
     } catch (error) {
       console.error('Failed to stop recording:', error);
     }
-  }, []);
+  }, [currentInterviewId, code]);
 
   return (
     <main className="w-full h-screen text-white bg-gray-900">
@@ -85,9 +112,11 @@ export default function Home() {
               {isRecording ? 'Stop Recording' : 'Start Recording'}
             </button>
           </div>
+          <div className="flex flex-col h-full">
           <div className="prose prose-invert">
             <p>Sample problem description...</p>
-            <Conversation />
+            </div>
+            <ChatView interviewId={currentInterviewId} />
           </div>
         </div>
 
