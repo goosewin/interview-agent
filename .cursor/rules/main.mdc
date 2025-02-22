@@ -51,5 +51,10 @@ globs: *
 - **Vercel Deployment:** Ensure the project is deployable on Vercel with optimized build configurations.
 - **Performance Optimization:** Focus on minimizing latency in UI updates and API responses.
 
+## Docs
+- https://orm.drizzle.team/docs
+- https://neon.tech/docs/
+- https://nextjs.org/docs
+
 ---
 *Follow these rules strictly to ensure code generation is efficient and aligned with our tech stack and project requirements.*
