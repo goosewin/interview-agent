@@ -1,14 +1,27 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+
+type Candidate = {
+  id: string
+  name: string
+  email: string
+}
+
+type FormField = "candidateId" | "date" | "time" | "difficulty"
+
+type ZodError = {
+  path: FormField[]
+  message: string
+}
 
 const formSchema = z.object({
   candidateId: z.string({
@@ -28,6 +41,7 @@ const formSchema = z.object({
 export default function NewInterview() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [candidates, setCandidates] = useState<Candidate[]>([])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,14 +53,50 @@ export default function NewInterview() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  useEffect(() => {
+    async function fetchCandidates() {
+      try {
+        const response = await fetch("/api/candidates")
+        if (!response.ok) throw new Error("Failed to fetch candidates")
+        const data = await response.json()
+        setCandidates(data)
+      } catch (error) {
+        console.error("Error fetching candidates:", error)
+      }
+    }
+    fetchCandidates()
+  }, [])
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    // Here you would typically send the data to your API
-    console.log(values)
-    setTimeout(() => {
-      setIsLoading(false)
+    try {
+      const response = await fetch("/api/interviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        if (error.errors) {
+          error.errors.forEach((err: ZodError) => {
+            if (err.path[0] && typeof err.path[0] === "string") {
+              form.setError(err.path[0] as FormField, {
+                message: err.message,
+              })
+            }
+          })
+          return
+        }
+        throw new Error("Failed to create interview")
+      }
+
       router.push("/interviews")
-    }, 1000)
+    } catch (error) {
+      console.error("Error creating interview:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -72,8 +122,11 @@ export default function NewInterview() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="1">John Doe</SelectItem>
-                    <SelectItem value="2">Jane Smith</SelectItem>
+                    {candidates.map((candidate) => (
+                      <SelectItem key={candidate.id} value={candidate.id}>
+                        {candidate.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormDescription>Select the candidate for this interview.</FormDescription>
@@ -140,4 +193,3 @@ export default function NewInterview() {
     </div>
   )
 }
-

@@ -1,19 +1,33 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
+import { use, useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+
+type Interview = {
+  id: string
+  candidateId: string
+  scheduledFor: string
+  status: "not_started" | "in_progress" | "completed" | "cancelled"
+  metadata: {
+    difficulty: "easy" | "medium" | "hard"
+  }
+}
+
+type FormField = "date" | "time" | "difficulty"
+
+type ZodError = {
+  path: string[]
+  message: string
+}
 
 const formSchema = z.object({
-  candidateId: z.string({
-    required_error: "Please select a candidate.",
-  }),
   date: z.string({
     required_error: "Please select a date for the interview.",
   }),
@@ -25,31 +39,77 @@ const formSchema = z.object({
   }),
 })
 
-export default function RescheduleInterview({ params }: { params: { id: string } }) {
+export default function RescheduleInterview({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-
-  // In a real application, you would fetch the interview data here
-  const interviewData = {
-    candidateId: "1",
-    date: "2023-06-15",
-    time: "14:00",
-    difficulty: "medium" as const,
-  }
+  const [interview, setInterview] = useState<Interview | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: interviewData,
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  useEffect(() => {
+    async function fetchInterview() {
+      try {
+        const response = await fetch(`/api/interviews/${id}`)
+        if (!response.ok) throw new Error("Failed to fetch interview")
+        const data = await response.json()
+        setInterview(data)
+
+        // Set form defaults
+        const date = new Date(data.scheduledFor)
+        form.reset({
+          date: date.toISOString().split("T")[0],
+          time: date.toTimeString().slice(0, 5),
+          difficulty: data.metadata.difficulty,
+        })
+      } catch (error) {
+        console.error("Error fetching interview:", error)
+      }
+    }
+    fetchInterview()
+  }, [id, form])
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    // Here you would typically send the data to your API
-    console.log(values)
-    setTimeout(() => {
-      setIsLoading(false)
+    try {
+      const response = await fetch(`/api/interviews/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scheduledFor: `${values.date}T${values.time}`,
+          metadata: {
+            ...interview?.metadata,
+            difficulty: values.difficulty,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        if (error.errors) {
+          error.errors.forEach((err: ZodError) => {
+            if (err.path[0] && typeof err.path[0] === "string") {
+              const field = err.path[0] as FormField
+              if (field === "date" || field === "time" || field === "difficulty") {
+                form.setError(field, {
+                  message: err.message,
+                })
+              }
+            }
+          })
+          return
+        }
+        throw new Error("Failed to reschedule interview")
+      }
+
       router.push("/interviews")
-    }, 1000)
+    } catch (error) {
+      console.error("Error rescheduling interview:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -62,28 +122,6 @@ export default function RescheduleInterview({ params }: { params: { id: string }
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="candidateId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Candidate</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a candidate" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="1">John Doe</SelectItem>
-                    <SelectItem value="2">Jane Smith</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>Select the candidate for this interview.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="date"
@@ -143,4 +181,3 @@ export default function RescheduleInterview({ params }: { params: { id: string }
     </div>
   )
 }
-

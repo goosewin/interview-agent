@@ -1,10 +1,6 @@
 "use client"
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -13,17 +9,60 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useState } from "react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { MoreHorizontal } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
+
+type Interview = {
+  id: string
+  candidateId: string
+  scheduledFor: string
+  status: "not_started" | "in_progress" | "completed" | "cancelled"
+  metadata: {
+    difficulty: "easy" | "medium" | "hard"
+  }
+}
 
 export default function Interviews() {
-  // This is dummy data. In a real application, you would fetch this from your API.
-  const interviews = [
-    { id: 1, candidate: "John Doe", date: "2023-06-15", time: "14:00", status: "Scheduled" },
-    { id: 2, candidate: "Jane Smith", date: "2023-06-16", time: "10:00", status: "Completed" },
-  ]
-
+  const [interviews, setInterviews] = useState<Interview[]>([])
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
-  const [selectedInterview, setSelectedInterview] = useState<(typeof interviews)[0] | null>(null)
+  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    fetchInterviews()
+  }, [])
+
+  async function fetchInterviews() {
+    try {
+      const response = await fetch("/api/interviews")
+      if (!response.ok) throw new Error("Failed to fetch interviews")
+      const data = await response.json()
+      setInterviews(data)
+    } catch (error) {
+      console.error("Error fetching interviews:", error)
+    }
+  }
+
+  async function cancelInterview(id: string) {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/interviews/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      })
+      if (!response.ok) throw new Error("Failed to cancel interview")
+      await fetchInterviews()
+      setIsCancelDialogOpen(false)
+    } catch (error) {
+      console.error("Error cancelling interview:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="w-full">
@@ -40,43 +79,48 @@ export default function Interviews() {
               <TableHead className="w-[200px]">Candidate</TableHead>
               <TableHead className="w-[150px]">Date</TableHead>
               <TableHead className="w-[100px]">Time</TableHead>
+              <TableHead className="w-[100px]">Difficulty</TableHead>
               <TableHead className="w-[150px]">Status</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {interviews.map((interview) => (
-              <TableRow key={interview.id}>
-                <TableCell>{interview.candidate}</TableCell>
-                <TableCell>{interview.date}</TableCell>
-                <TableCell>{interview.time}</TableCell>
-                <TableCell>{interview.status}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/interviews/${interview.id}/reschedule`}>Reschedule</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault()
-                          setSelectedInterview(interview)
-                          setIsCancelDialogOpen(true)
-                        }}
-                      >
-                        Cancel
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+            {interviews.map((interview) => {
+              const date = new Date(interview.scheduledFor)
+              return (
+                <TableRow key={interview.id}>
+                  <TableCell>{interview.candidateId}</TableCell>
+                  <TableCell>{date.toLocaleDateString()}</TableCell>
+                  <TableCell>{date.toLocaleTimeString()}</TableCell>
+                  <TableCell>{interview.metadata.difficulty}</TableCell>
+                  <TableCell>{interview.status}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/interviews/${interview.id}/reschedule`}>Reschedule</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            setSelectedInterview(interview)
+                            setIsCancelDialogOpen(true)
+                          }}
+                        >
+                          Cancel
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>
@@ -91,13 +135,13 @@ export default function Interviews() {
           {selectedInterview && (
             <div className="py-4">
               <p>
-                <strong>Candidate:</strong> {selectedInterview.candidate}
+                <strong>Candidate:</strong> {selectedInterview.candidateId}
               </p>
               <p>
-                <strong>Date:</strong> {selectedInterview.date}
+                <strong>Date:</strong> {new Date(selectedInterview.scheduledFor).toLocaleDateString()}
               </p>
               <p>
-                <strong>Time:</strong> {selectedInterview.time}
+                <strong>Time:</strong> {new Date(selectedInterview.scheduledFor).toLocaleTimeString()}
               </p>
             </div>
           )}
@@ -107,14 +151,10 @@ export default function Interviews() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                // Here you would typically send the cancellation request to your API
-                console.log(`Cancelling interview ${selectedInterview?.id}`)
-                setIsCancelDialogOpen(false)
-                // Optionally, update the local state or refetch the interviews
-              }}
+              onClick={() => selectedInterview && cancelInterview(selectedInterview.id)}
+              disabled={isLoading}
             >
-              Cancel Interview
+              {isLoading ? "Cancelling..." : "Cancel Interview"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -122,4 +162,3 @@ export default function Interviews() {
     </div>
   )
 }
-

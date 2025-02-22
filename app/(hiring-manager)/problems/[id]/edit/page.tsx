@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { use, useState } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 
@@ -25,7 +25,8 @@ const formSchema = z.object({
   sampleOutput: z.string().optional(),
 })
 
-export default function EditProblem({ params }: { params: { id: string } }) {
+export default function EditProblem({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 

@@ -12,9 +12,9 @@ export default function SSOCallback() {
     async function handleCallback() {
       try {
         await handleRedirectCallback({
-          redirectUrl: window.location.href,
+          afterSignInUrl: "/dashboard",
+          afterSignUpUrl: "/dashboard",
         });
-        router.push("/dashboard");
       } catch (err) {
         console.error("Error handling callback:", err);
         router.push("/sign-in");

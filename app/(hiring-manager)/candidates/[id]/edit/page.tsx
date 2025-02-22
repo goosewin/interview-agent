@@ -1,14 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
+import { use, useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -21,36 +21,66 @@ const formSchema = z.object({
   notes: z.string().optional(),
 })
 
-export default function EditCandidate({ params }: { params: { id: string } }) {
+type Candidate = z.infer<typeof formSchema>
+
+export default function EditCandidate({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  // In a real application, you would fetch the candidate data here
-  const candidateData = {
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "+1 (555) 123-4567",
-    notes: "Experienced frontend developer",
-  }
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<Candidate>({
     resolver: zodResolver(formSchema),
-    defaultValues: candidateData,
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      notes: "",
+    },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  useEffect(() => {
+    async function fetchCandidate() {
+      try {
+        const response = await fetch(`/api/candidates/${id}`)
+        if (!response.ok) throw new Error('Failed to fetch candidate')
+        const data = await response.json()
+        form.reset(data)
+      } catch (error) {
+        console.error('Error fetching candidate:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch candidate')
+      }
+    }
+    fetchCandidate()
+  }, [id, form])
+
+  async function onSubmit(values: Candidate) {
     setIsLoading(true)
-    // Here you would typically send the data to your API
-    console.log(values)
-    setTimeout(() => {
-      setIsLoading(false)
+    setError("")
+    try {
+      const response = await fetch(`/api/candidates/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to update candidate')
+      }
+
       router.push("/candidates")
-    }, 1000)
+    } catch (error) {
+      console.error('Error updating candidate:', error)
+      setError(error instanceof Error ? error.message : 'Failed to update candidate')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Edit Candidate</h1>
         <Button variant="outline" onClick={() => router.push("/candidates")}>
           Back to Candidates
@@ -67,7 +97,7 @@ export default function EditCandidate({ params }: { params: { id: string } }) {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                <FormDescription>Enter the candidate's full name.</FormDescription>
+                <FormDescription>Enter the candidate&apos;s full name.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -81,7 +111,7 @@ export default function EditCandidate({ params }: { params: { id: string } }) {
                 <FormControl>
                   <Input type="email" {...field} />
                 </FormControl>
-                <FormDescription>Enter the candidate's email address.</FormDescription>
+                <FormDescription>Enter the candidate&apos;s email address.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -95,7 +125,7 @@ export default function EditCandidate({ params }: { params: { id: string } }) {
                 <FormControl>
                   <Input type="tel" {...field} />
                 </FormControl>
-                <FormDescription>Enter the candidate's phone number.</FormDescription>
+                <FormDescription>Enter the candidate&apos;s phone number.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -114,6 +144,7 @@ export default function EditCandidate({ params }: { params: { id: string } }) {
               </FormItem>
             )}
           />
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Updating..." : "Update Candidate"}
           </Button>
@@ -122,4 +153,3 @@ export default function EditCandidate({ params }: { params: { id: string } }) {
     </div>
   )
 }
-

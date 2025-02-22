@@ -24,6 +24,7 @@ const formSchema = z.object({
 export default function NewCandidate() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -35,14 +36,28 @@ export default function NewCandidate() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    // Here you would typically send the data to your API
-    console.log(values)
-    setTimeout(() => {
-      setIsLoading(false)
+    setError("")
+    try {
+      const response = await fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to create candidate')
+      }
+
       router.push("/candidates")
-    }, 1000)
+    } catch (error) {
+      console.error('Error creating candidate:', error)
+      setError(error instanceof Error ? error.message : 'Failed to create candidate')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -64,7 +79,7 @@ export default function NewCandidate() {
                 <FormControl>
                   <Input placeholder="John Doe" {...field} />
                 </FormControl>
-                <FormDescription>Enter the candidate's full name.</FormDescription>
+                <FormDescription>Enter the candidate&apos;s full name.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -78,7 +93,7 @@ export default function NewCandidate() {
                 <FormControl>
                   <Input type="email" placeholder="john@example.com" {...field} />
                 </FormControl>
-                <FormDescription>Enter the candidate's email address.</FormDescription>
+                <FormDescription>Enter the candidate&apos;s email address.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -92,7 +107,7 @@ export default function NewCandidate() {
                 <FormControl>
                   <Input type="tel" placeholder="+1 (555) 123-4567" {...field} />
                 </FormControl>
-                <FormDescription>Enter the candidate's phone number.</FormDescription>
+                <FormDescription>Enter the candidate&apos;s phone number.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -111,6 +126,7 @@ export default function NewCandidate() {
               </FormItem>
             )}
           />
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Adding..." : "Add Candidate"}
           </Button>

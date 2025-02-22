@@ -27,6 +27,10 @@
   width: 4px !important;
 }
 
+div[role="dialog"] {
+  background-color: var(--background);
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

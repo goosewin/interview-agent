@@ -1,35 +1,58 @@
 import { db } from '@/db';
-import { codeSubmissions, interviews, messages, users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { candidates, codeSubmissions, interviews, messages } from '@/db/schema';
+import { and, eq } from 'drizzle-orm';
 
 export type NewInterview = typeof interviews.$inferInsert;
 export type Interview = typeof interviews.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type CodeSubmission = typeof codeSubmissions.$inferSelect;
-export type User = typeof users.$inferSelect;
+export type Candidate = typeof candidates.$inferSelect;
+export type NewCandidate = typeof candidates.$inferInsert;
 
-export async function getOrCreateUser(clerkId: string, email: string, name?: string) {
-  // First try to get the user
-  const [existingUser] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, clerkId));
-
-  if (existingUser) {
-    return existingUser;
+export async function getCandidates(userId: string, includeArchived = false) {
+  const conditions = [eq(candidates.userId, userId)];
+  if (!includeArchived) {
+    conditions.push(eq(candidates.status, 'active'));
   }
 
-  // If user doesn't exist, create them
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      id: clerkId,
-      email,
-      name,
-    })
-    .returning();
+  return db
+    .select()
+    .from(candidates)
+    .where(and(...conditions))
+    .orderBy(candidates.createdAt);
+}
 
-  return newUser;
+export async function getCandidate(id: string, userId: string) {
+  const [candidate] = await db
+    .select()
+    .from(candidates)
+    .where(and(eq(candidates.id, id), eq(candidates.userId, userId)));
+  return candidate;
+}
+
+export async function createCandidate(data: NewCandidate) {
+  const [candidate] = await db
+    .insert(candidates)
+    .values(data)
+    .returning();
+  return candidate;
+}
+
+export async function updateCandidate(id: string, userId: string, data: Partial<NewCandidate>) {
+  const [candidate] = await db
+    .update(candidates)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(candidates.id, id), eq(candidates.userId, userId)))
+    .returning();
+  return candidate;
+}
+
+export async function deleteCandidate(id: string, userId: string) {
+  const [candidate] = await db
+    .delete(candidates)
+    .where(and(eq(candidates.id, id), eq(candidates.userId, userId)))
+    .returning();
+  return candidate;
 }
 
 export async function getUserInterviews(userId: string) {

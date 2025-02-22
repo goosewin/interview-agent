@@ -1,30 +1,63 @@
-import { db } from '@/db';
-import { interviews } from '@/db/schema';
-import { desc } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { createInterview, getUserInterviews } from "@/lib/db";
+import { currentUser } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+const createInterviewSchema = z.object({
+  candidateId: z.string().min(1, "Candidate is required"),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().min(1, "Time is required"),
+  difficulty: z.enum(["easy", "medium", "hard"], {
+    required_error: "Difficulty is required",
+  }),
+});
 
 export async function GET() {
   try {
-    const results = await db
-      .select()
-      .from(interviews)
-      .orderBy(desc(interviews.createdAt))
-      .limit(10);
+    const user = await currentUser();
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    return NextResponse.json(results);
+    const interviews = await getUserInterviews(user.id);
+    return NextResponse.json(interviews);
   } catch (error) {
-    console.error('Failed to fetch interviews:', error);
-    return NextResponse.json({ error: 'Failed to fetch interviews' }, { status: 500 });
+    console.error("Failed to fetch interviews:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const result = await db.insert(interviews).values(body).returning();
-    return NextResponse.json(result[0]);
+    const user = await currentUser();
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const body = await req.json();
+    const validatedData = createInterviewSchema.parse(body);
+
+    // Combine date and time into a single datetime
+    const scheduledFor = new Date(`${validatedData.date}T${validatedData.time}`);
+
+    const interview = await createInterview({
+      userId: user.id,
+      candidateId: validatedData.candidateId,
+      scheduledFor,
+      status: "not_started",
+      problemDescription: "To be assigned", // Will be set when interview starts
+      language: "javascript", // Default language, can be changed later
+      metadata: {
+        difficulty: validatedData.difficulty,
+      },
+    });
+
+    return NextResponse.json(interview);
   } catch (error) {
-    console.error('Failed to create interview:', error);
-    return NextResponse.json({ error: 'Failed to create interview' }, { status: 500 });
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ errors: error.errors }, { status: 400 });
+    }
+    console.error("Failed to create interview:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

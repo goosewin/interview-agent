@@ -4,11 +4,13 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSignIn } from "@clerk/nextjs";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function AuthenticationPage() {
   const { isLoaded, signIn } = useSignIn();
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   if (!isLoaded) {
     return null;
@@ -19,10 +21,10 @@ export default function AuthenticationPage() {
     setIsLoading(true);
 
     try {
-      await signIn.authenticateWithRedirect({
+      const result = await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
-        redirectUrl: `${window.location.origin}/sso-callback`,
-        redirectUrlComplete: `${window.location.origin}/dashboard`,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/dashboard",
       });
     } catch (err) {
       console.error("Error:", err);

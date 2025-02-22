@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { use, useEffect, useState } from "react"
 
-export default function Interview() {
-  const { id } = useParams()
+export default function Interview({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [problem, setProblem] = useState("")
   const [code, setCode] = useState("")
   const [isRecording, setIsRecording] = useState(false)
@@ -53,4 +52,3 @@ export default function Interview() {
     </div>
   )
 }
-

@@ -7,27 +7,33 @@ export const interviewStatusEnum = pgEnum('interview_status', [
   'cancelled'
 ]);
 
-export const users = pgTable('users', {
+export const candidates = pgTable('candidates', {
   id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').notNull().unique(),
-  name: text('name'),
+  userId: text('user_id').notNull(), // Clerk user ID
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  phone: text('phone'),
+  status: text('status').notNull().default('active'),
+  notes: text('notes'),
+  resumeUrl: text('resume_url'),
+  metadata: jsonb('metadata').default({}).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const interviews = pgTable('interviews', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .references(() => users.id)
-    .notNull(),
+  userId: text('user_id').notNull(), // Clerk user ID
+  candidateId: uuid('candidate_id').references(() => candidates.id).notNull(),
   status: interviewStatusEnum('status').notNull().default('not_started'),
+  scheduledFor: timestamp('scheduled_for').notNull(),
   problemDescription: text('problem_description').notNull(),
   code: text('code'),
   language: text('language').notNull(),
   recordingUrl: text('recording_url'),
   recordingStartedAt: timestamp('recording_started_at'),
   recordingEndedAt: timestamp('recording_ended_at'),
-  duration: text('duration'), // in seconds
+  duration: text('duration'),
   isScreenRecorded: boolean('is_screen_recorded').default(false),
   isAudioRecorded: boolean('is_audio_recorded').default(false),
   metadata: jsonb('metadata').default({}).notNull(),
@@ -40,7 +46,7 @@ export const messages = pgTable('messages', {
   interviewId: uuid('interview_id')
     .references(() => interviews.id)
     .notNull(),
-  role: text('role').notNull(), // 'user' | 'assistant'
+  role: text('role').notNull(),
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
