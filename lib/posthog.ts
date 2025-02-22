@@ -29,9 +29,7 @@ export function captureLLMGeneration({
   metadata?: Record<string, unknown>;
 }) {
   const latency = Date.now() - startTime;
-  const inputContent = Array.isArray(input)
-    ? input[input.length - 1].content
-    : input;
+  const inputContent = Array.isArray(input) ? input[input.length - 1].content : input;
 
   posthog.capture('$ai_generation', {
     $ai_model: model,
