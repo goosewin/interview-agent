@@ -58,14 +58,21 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [interview, setInterview] = useState<Interview | null>(null);
+  const [isLoadingInterview, setIsLoadingInterview] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-US', { hour12: false }).slice(0, 5),
+      difficulty: 'medium',
+    },
   });
 
   useEffect(() => {
     async function fetchInterview() {
       try {
+        setIsLoadingInterview(true);
         const response = await fetch(`/api/interviews/${id}`);
         if (!response.ok) throw new Error('Failed to fetch interview');
         const data = await response.json();
@@ -75,11 +82,13 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
         const date = new Date(data.scheduledFor);
         form.reset({
           date: date.toISOString().split('T')[0],
-          time: date.toTimeString().slice(0, 5),
+          time: date.toLocaleTimeString('en-US', { hour12: false }).slice(0, 5),
           difficulty: data.metadata.difficulty,
         });
       } catch (error) {
         console.error('Error fetching interview:', error);
+      } finally {
+        setIsLoadingInterview(false);
       }
     }
     fetchInterview();
@@ -126,6 +135,25 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
     }
   }
 
+  if (isLoadingInterview) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <p>Loading interview details...</p>
+      </div>
+    );
+  }
+
+  if (!isLoadingInterview && !interview) {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
+        <p>Interview not found.</p>
+        <Button asChild>
+          <a href="/interviews">Back to Interviews</a>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
@@ -143,7 +171,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="date" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormDescription>Select the new date for the interview.</FormDescription>
                 <FormMessage />
@@ -157,7 +185,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
               <FormItem>
                 <FormLabel>Time</FormLabel>
                 <FormControl>
-                  <Input type="time" {...field} />
+                  <Input type="time" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormDescription>Select the new time for the interview.</FormDescription>
                 <FormMessage />
@@ -170,7 +198,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Problem Difficulty</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select difficulty" />

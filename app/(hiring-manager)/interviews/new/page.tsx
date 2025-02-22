@@ -56,13 +56,14 @@ export default function NewInterview() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       candidateId: '',
-      date: '',
-      time: '',
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-US', { hour12: false }).slice(0, 5),
       difficulty: 'medium',
     },
   });
@@ -70,12 +71,15 @@ export default function NewInterview() {
   useEffect(() => {
     async function fetchCandidates() {
       try {
+        setIsLoadingCandidates(true);
         const response = await fetch('/api/candidates');
         if (!response.ok) throw new Error('Failed to fetch candidates');
         const data = await response.json();
         setCandidates(data);
       } catch (error) {
         console.error('Error fetching candidates:', error);
+      } finally {
+        setIsLoadingCandidates(false);
       }
     }
     fetchCandidates();
@@ -113,6 +117,25 @@ export default function NewInterview() {
     }
   }
 
+  if (isLoadingCandidates) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <p>Loading candidates...</p>
+      </div>
+    );
+  }
+
+  if (!isLoadingCandidates && candidates.length === 0) {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
+        <p>No candidates found. Add some candidates first.</p>
+        <Button asChild>
+          <a href="/candidates/new">Add New Candidate</a>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
@@ -129,7 +152,7 @@ export default function NewInterview() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Candidate</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a candidate" />
@@ -155,7 +178,7 @@ export default function NewInterview() {
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="date" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormDescription>Select the date for the interview.</FormDescription>
                 <FormMessage />
@@ -169,7 +192,7 @@ export default function NewInterview() {
               <FormItem>
                 <FormLabel>Time</FormLabel>
                 <FormControl>
-                  <Input type="time" {...field} />
+                  <Input type="time" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormDescription>Select the time for the interview.</FormDescription>
                 <FormMessage />
@@ -182,7 +205,7 @@ export default function NewInterview() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Problem Difficulty</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select difficulty" />

@@ -25,17 +25,51 @@ import {
 } from '@/components/ui/table';
 import { MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+type Problem = {
+  id: string;
+  title: string;
+  difficulty: string;
+  createdAt: string;
+};
 
 export default function Problems() {
-  // This is dummy data. In a real application, you would fetch this from your API.
-  const problems = [
-    { id: 1, title: 'Two Sum', difficulty: 'Easy' },
-    { id: 2, title: 'Merge Intervals', difficulty: 'Medium' },
-  ];
-
+  const [problems, setProblems] = useState<Problem[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedProblem, setSelectedProblem] = useState<(typeof problems)[0] | null>(null);
+  const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchProblems();
+  }, []);
+
+  async function fetchProblems() {
+    try {
+      const response = await fetch('/api/problems');
+      if (!response.ok) throw new Error('Failed to fetch problems');
+      const data = await response.json();
+      setProblems(data);
+    } catch (error) {
+      console.error('Error fetching problems:', error);
+    }
+  }
+
+  async function deleteProblem(id: string) {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/problems/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete problem');
+      await fetchProblems();
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error deleting problem:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="w-full">
@@ -49,8 +83,9 @@ export default function Problems() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[400px]">Title</TableHead>
-              <TableHead>Difficulty</TableHead>
+              <TableHead className="w-[300px]">Title</TableHead>
+              <TableHead className="w-[150px]">Difficulty</TableHead>
+              <TableHead className="w-[200px]">Created At</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -58,7 +93,8 @@ export default function Problems() {
             {problems.map((problem) => (
               <TableRow key={problem.id}>
                 <TableCell>{problem.title}</TableCell>
-                <TableCell>{problem.difficulty}</TableCell>
+                <TableCell className="capitalize">{problem.difficulty}</TableCell>
+                <TableCell>{new Date(problem.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -99,7 +135,7 @@ export default function Problems() {
           {selectedProblem && (
             <div className="py-4">
               <p>
-                <strong>Problem:</strong> {selectedProblem.title}
+                <strong>Title:</strong> {selectedProblem.title}
               </p>
               <p>
                 <strong>Difficulty:</strong> {selectedProblem.difficulty}
@@ -112,14 +148,10 @@ export default function Problems() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                // Here you would typically send the delete request to your API
-                console.log(`Deleting problem ${selectedProblem?.id}`);
-                setIsDeleteDialogOpen(false);
-                // Optionally, update the local state or refetch the problems
-              }}
+              onClick={() => selectedProblem && deleteProblem(selectedProblem.id)}
+              disabled={isLoading}
             >
-              Delete Problem
+              {isLoading ? 'Deleting...' : 'Delete Problem'}
             </Button>
           </DialogFooter>
         </DialogContent>

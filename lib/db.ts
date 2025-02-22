@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { candidates, codeSubmissions, interviews, messages } from '@/db/schema';
+import { candidates, codeSubmissions, interviews, messages, problems } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 
 export type NewInterview = typeof interviews.$inferInsert;
@@ -8,6 +8,8 @@ export type Message = typeof messages.$inferSelect;
 export type CodeSubmission = typeof codeSubmissions.$inferSelect;
 export type Candidate = typeof candidates.$inferSelect;
 export type NewCandidate = typeof candidates.$inferInsert;
+export type Problem = typeof problems.$inferSelect;
+export type NewProblem = typeof problems.$inferInsert;
 
 export async function getCandidates(userId: string, includeArchived = false) {
   const conditions = [eq(candidates.userId, userId)];
@@ -54,10 +56,19 @@ export async function deleteCandidate(id: string, userId: string) {
 
 export async function getUserInterviews(userId: string) {
   return db
-    .select()
+    .select({
+      id: interviews.id,
+      candidateId: interviews.candidateId,
+      scheduledFor: interviews.scheduledFor,
+      status: interviews.status,
+      metadata: interviews.metadata,
+      candidateName: candidates.name,
+      candidateEmail: candidates.email,
+    })
     .from(interviews)
+    .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
     .where(eq(interviews.userId, userId))
-    .orderBy(interviews.createdAt);
+    .orderBy(interviews.scheduledFor);
 }
 
 export async function createInterview(data: NewInterview) {
@@ -139,4 +150,42 @@ export async function stopRecording(interviewId: string, recordingUrl: string) {
     recordingUrl,
     duration,
   });
+}
+
+export async function getProblems(userId: string) {
+  return db
+    .select()
+    .from(problems)
+    .where(eq(problems.userId, userId))
+    .orderBy(problems.createdAt);
+}
+
+export async function getProblem(id: string, userId: string) {
+  const [problem] = await db
+    .select()
+    .from(problems)
+    .where(and(eq(problems.id, id), eq(problems.userId, userId)));
+  return problem;
+}
+
+export async function createProblem(data: NewProblem) {
+  const [problem] = await db.insert(problems).values(data).returning();
+  return problem;
+}
+
+export async function updateProblem(id: string, userId: string, data: Partial<NewProblem>) {
+  const [problem] = await db
+    .update(problems)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(problems.id, id), eq(problems.userId, userId)))
+    .returning();
+  return problem;
+}
+
+export async function deleteProblem(id: string, userId: string) {
+  const [problem] = await db
+    .delete(problems)
+    .where(and(eq(problems.id, id), eq(problems.userId, userId)))
+    .returning();
+  return problem;
 }

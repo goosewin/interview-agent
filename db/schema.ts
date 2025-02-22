@@ -21,12 +21,27 @@ export const candidates = pgTable('candidates', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const problems = pgTable('problems', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull(), // Clerk user ID
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  difficulty: text('difficulty').notNull(),
+  sampleInput: text('sample_input'),
+  sampleOutput: text('sample_output'),
+  metadata: jsonb('metadata').default({}).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const interviews = pgTable('interviews', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull(), // Clerk user ID
   candidateId: uuid('candidate_id')
     .references(() => candidates.id)
     .notNull(),
+  problemId: uuid('problem_id')
+    .references(() => problems.id),
   status: interviewStatusEnum('status').notNull().default('not_started'),
   scheduledFor: timestamp('scheduled_for').notNull(),
   problemDescription: text('problem_description').notNull(),

@@ -11,14 +11,15 @@ const updateInterviewSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const user = await currentUser();
     if (!user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const interview = await getInterview(params.id);
+    const interview = await getInterview(id);
     if (!interview) {
       return new NextResponse('Interview not found', { status: 404 });
     }
@@ -34,14 +35,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const user = await currentUser();
     if (!user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const interview = await getInterview(params.id);
+    const interview = await getInterview(id);
     if (!interview) {
       return new NextResponse('Interview not found', { status: 404 });
     }
@@ -59,7 +61,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     // Add scheduledFor as Date if provided
     const data = scheduledFor ? { ...rest, scheduledFor: new Date(scheduledFor) } : rest;
 
-    const updatedInterview = await updateInterview(params.id, data);
+    const updatedInterview = await updateInterview(id, data);
     return NextResponse.json(updatedInterview);
   } catch (error) {
     if (error instanceof z.ZodError) {

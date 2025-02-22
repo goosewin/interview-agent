@@ -21,7 +21,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
@@ -39,36 +39,84 @@ const formSchema = z.object({
   sampleOutput: z.string().optional(),
 });
 
+type Problem = z.infer<typeof formSchema>;
+
 export default function EditProblem({ params }: { params: Promise<{ id: string }> }) {
-  const {
-    /* id */
-  } = use(params);
+  const { id } = use(params);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoadingProblem, setIsLoadingProblem] = useState(true);
 
-  // In a real application, you would fetch the problem data here
-  const problemData = {
-    title: 'Two Sum',
-    description:
-      'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
-    difficulty: 'easy' as const,
-    sampleInput: '[2, 7, 11, 15], 9',
-    sampleOutput: '[0, 1]',
-  };
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<Problem>({
     resolver: zodResolver(formSchema),
-    defaultValues: problemData,
+    defaultValues: {
+      title: '',
+      description: '',
+      difficulty: 'medium',
+      sampleInput: '',
+      sampleOutput: '',
+    },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  useEffect(() => {
+    async function fetchProblem() {
+      try {
+        setIsLoadingProblem(true);
+        const response = await fetch(`/api/problems/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch problem');
+        const data = await response.json();
+        form.reset(data);
+      } catch (error) {
+        console.error('Error fetching problem:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch problem');
+      } finally {
+        setIsLoadingProblem(false);
+      }
+    }
+    fetchProblem();
+  }, [id, form]);
+
+  async function onSubmit(values: Problem) {
     setIsLoading(true);
-    // Here you would typically send the data to your API
-    console.log(values);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError('');
+    try {
+      const response = await fetch(`/api/problems/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.errors) {
+          error.errors.forEach((err: { path: string[]; message: string }) => {
+            if (err.path[0]) {
+              form.setError(err.path[0] as keyof Problem, {
+                message: err.message,
+              });
+            }
+          });
+          return;
+        }
+        throw new Error('Failed to update problem');
+      }
+
       router.push('/problems');
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating problem:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update problem');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (isLoadingProblem) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <p>Loading problem details...</p>
+      </div>
+    );
   }
 
   return (
@@ -104,9 +152,7 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
                 <FormControl>
                   <Textarea {...field} className="min-h-[200px]" />
                 </FormControl>
-                <FormDescription>
-                  Enter the description of the problem using markdown.
-                </FormDescription>
+                <FormDescription>Enter the description of the problem using markdown.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -117,10 +163,10 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Difficulty</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a difficulty" />
+                      <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -129,9 +175,7 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
                     <SelectItem value="hard">Hard</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormDescription>
-                  Please select the difficulty level of the problem.
-                </FormDescription>
+                <FormDescription>Select the difficulty level of the problem.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -164,6 +208,7 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
               </FormItem>
             )}
           />
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" disabled={isLoading}>
             {isLoading ? 'Updating...' : 'Update Problem'}
           </Button>

@@ -1,5 +1,6 @@
 'use client';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,6 +31,8 @@ import { useEffect, useState } from 'react';
 type Interview = {
   id: string;
   candidateId: string;
+  candidateName: string;
+  candidateEmail: string;
   scheduledFor: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
   metadata: {
@@ -88,9 +91,9 @@ export default function Interviews() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[200px]">Candidate</TableHead>
+              <TableHead className="w-[300px]">Candidate</TableHead>
               <TableHead className="w-[150px]">Date</TableHead>
-              <TableHead className="w-[100px]">Time</TableHead>
+              <TableHead className="w-[150px]">Time</TableHead>
               <TableHead className="w-[100px]">Difficulty</TableHead>
               <TableHead className="w-[150px]">Status</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
@@ -101,11 +104,32 @@ export default function Interviews() {
               const date = new Date(interview.scheduledFor);
               return (
                 <TableRow key={interview.id}>
-                  <TableCell>{interview.candidateId}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage
+                          src={`https://avatar.vercel.sh/${interview.candidateEmail}`}
+                          alt={interview.candidateName}
+                        />
+                        <AvatarFallback>
+                          {interview.candidateName
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{interview.candidateName}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {interview.candidateEmail}
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell>{date.toLocaleDateString()}</TableCell>
                   <TableCell>{date.toLocaleTimeString()}</TableCell>
-                  <TableCell>{interview.metadata.difficulty}</TableCell>
-                  <TableCell>{interview.status}</TableCell>
+                  <TableCell className="capitalize">{interview.metadata.difficulty}</TableCell>
+                  <TableCell className="capitalize">{interview.status}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -124,6 +148,7 @@ export default function Interviews() {
                             setSelectedInterview(interview);
                             setIsCancelDialogOpen(true);
                           }}
+                          disabled={interview.status === 'cancelled'}
                         >
                           Cancel
                         </DropdownMenuItem>
@@ -147,7 +172,7 @@ export default function Interviews() {
           {selectedInterview && (
             <div className="py-4">
               <p>
-                <strong>Candidate:</strong> {selectedInterview.candidateId}
+                <strong>Candidate:</strong> {selectedInterview.candidateName}
               </p>
               <p>
                 <strong>Date:</strong>{' '}

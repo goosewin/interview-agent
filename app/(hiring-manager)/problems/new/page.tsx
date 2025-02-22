@@ -42,6 +42,7 @@ const formSchema = z.object({
 export default function NewProblem() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -54,14 +55,38 @@ export default function NewProblem() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Here you would typically send the data to your API
-    console.log(values);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError('');
+    try {
+      const response = await fetch('/api/problems', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.errors) {
+          error.errors.forEach((err: { path: string[]; message: string }) => {
+            if (err.path[0]) {
+              form.setError(err.path[0] as keyof z.infer<typeof formSchema>, {
+                message: err.message,
+              });
+            }
+          });
+          return;
+        }
+        throw new Error('Failed to create problem');
+      }
+
       router.push('/problems');
-    }, 1000);
+    } catch (error) {
+      console.error('Error creating problem:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create problem');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -81,7 +106,7 @@ export default function NewProblem() {
               <FormItem>
                 <FormLabel>Title</FormLabel>
                 <FormControl>
-                  <Input placeholder="Two Sum" {...field} />
+                  <Input {...field} />
                 </FormControl>
                 <FormDescription>Enter the title of the problem.</FormDescription>
                 <FormMessage />
@@ -95,23 +120,9 @@ export default function NewProblem() {
               <FormItem>
                 <FormLabel>Description (Markdown)</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="# Problem Description
-
-Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.
-
-You may assume that each input would have **exactly one solution**, and you may not use the same element twice.
-
-You can return the answer in any order.
-
-## Example:"
-                    className="min-h-[200px]"
-                    {...field}
-                  />
+                  <Textarea {...field} className="min-h-[200px]" />
                 </FormControl>
-                <FormDescription>
-                  Enter the description of the problem using markdown.
-                </FormDescription>
+                <FormDescription>Enter the description of the problem using markdown.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -122,10 +133,10 @@ You can return the answer in any order.
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Difficulty</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a difficulty" />
+                      <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -134,9 +145,7 @@ You can return the answer in any order.
                     <SelectItem value="hard">Hard</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormDescription>
-                  Please select the difficulty level of the problem.
-                </FormDescription>
+                <FormDescription>Select the difficulty level of the problem.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -148,7 +157,7 @@ You can return the answer in any order.
               <FormItem>
                 <FormLabel>Sample Input</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="e.g., [2, 7, 11, 15], 9" {...field} />
+                  <Textarea {...field} />
                 </FormControl>
                 <FormDescription>Enter a sample input for the problem.</FormDescription>
                 <FormMessage />
@@ -162,15 +171,16 @@ You can return the answer in any order.
               <FormItem>
                 <FormLabel>Sample Output</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="e.g., [0, 1]" {...field} />
+                  <Textarea {...field} />
                 </FormControl>
                 <FormDescription>Enter the corresponding sample output.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create Problem'}
+            {isLoading ? 'Adding...' : 'Add Problem'}
           </Button>
         </form>
       </Form>
