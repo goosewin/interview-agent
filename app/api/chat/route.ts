@@ -2,8 +2,6 @@ import { aiClient } from '@/lib/ai';
 import { captureLLMGeneration } from '@/lib/posthog';
 import { generateText } from 'ai';
 
-export const runtime = 'edge';
-
 export async function POST(req: Request) {
   const { messages } = await req.json();
   const startTime = Date.now();

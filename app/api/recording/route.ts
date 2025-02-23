@@ -2,8 +2,6 @@ import { startRecording, stopRecording } from '@/lib/db';
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
-
 export async function POST(req: Request) {
   try {
     const contentType = req.headers.get('content-type') || '';
