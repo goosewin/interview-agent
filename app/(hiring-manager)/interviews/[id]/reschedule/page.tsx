@@ -27,6 +27,7 @@ import * as z from 'zod';
 
 type Interview = {
   id: string;
+  identifier: string; 
   candidateId: string;
   scheduledFor: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
@@ -84,7 +85,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
         form.reset({
           date: date.toISOString().split('T')[0],
           time: date.toLocaleTimeString('en-US', { hour12: false }).slice(0, 5),
-          difficulty: data.metadata.difficulty,
+          difficulty: data.metadata?.difficulty || 'medium',
         });
       } catch (error) {
         console.error('Error fetching interview:', error);
@@ -96,6 +97,11 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
   }, [id, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!interview) {
+      console.error('Interview data not loaded');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(`/api/interviews/${id}`, {
@@ -104,7 +110,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
         body: JSON.stringify({
           scheduledFor: `${values.date}T${values.time}`,
           metadata: {
-            ...interview?.metadata,
+            ...(interview?.metadata || {}),
             difficulty: values.difficulty,
           },
         }),
@@ -126,6 +132,36 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
           return;
         }
         throw new Error('Failed to reschedule interview');
+      }
+
+      // Send email notification after successful reschedule
+      if (!interview || !interview.candidateId || !interview.identifier) {
+        console.error('Missing interview data for email notification');
+        return;
+      }
+
+      const emailPayload = {
+        identifier: interview.identifier,  // Use the short identifier instead of UUID
+        candidateId: interview.candidateId,
+        scheduledFor: `${values.date}T${values.time}`,
+      };
+
+      const emailResponse = await fetch('/api/send-interview-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.json();
+        console.error('Failed to send interview email:', {
+          status: emailResponse.status,
+          statusText: emailResponse.statusText,
+          error: errorData,
+          requestPayload: emailPayload
+        });
+      } else {
+        console.log('Email sent successfully');
       }
 
       router.push('/interviews');
