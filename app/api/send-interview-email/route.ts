@@ -19,9 +19,42 @@ export async function POST(request: Request) {
     const { identifier, candidateId, scheduledFor } = await request.json();
     console.log('Request payload:', { identifier, candidateId, scheduledFor });
 
+    if (!identifier || !candidateId || !scheduledFor) {
+      console.error('Missing required fields:', { identifier, candidateId, scheduledFor });
+      return NextResponse.json(
+        { 
+          error: 'Missing required fields',
+          details: {
+            identifier: !identifier ? 'Interview identifier is required' : null,
+            candidateId: !candidateId ? 'Candidate ID is required' : null,
+            scheduledFor: !scheduledFor ? 'Schedule time is required' : null,
+          }
+        },
+        { status: 400 }
+      );
+    }
+
     const candidate = await getCandidate(candidateId, userId);
     if (!candidate) {
-      return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
+      console.error('Candidate not found:', { candidateId, userId });
+      return NextResponse.json(
+        { 
+          error: 'Candidate not found',
+          details: { candidateId }
+        },
+        { status: 404 }
+      );
+    }
+
+    if (!candidate.email) {
+      console.error('Candidate email not found:', { candidateId, name: candidate.name });
+      return NextResponse.json(
+        { 
+          error: 'Candidate email not found',
+          details: { candidateId, name: candidate.name }
+        },
+        { status: 400 }
+      );
     }
 
     const formattedDate = new Date(scheduledFor).toLocaleString('en-US', {

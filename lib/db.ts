@@ -97,6 +97,8 @@ export async function getInterview(id: string) {
   const [interview] = await db
     .select({
       id: interviews.id,
+      identifier: interviews.identifier,
+      candidateId: interviews.candidateId,
       candidateName: candidates.name,
       candidateEmail: candidates.email,
       scheduledFor: interviews.scheduledFor,
