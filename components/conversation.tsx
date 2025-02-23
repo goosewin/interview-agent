@@ -31,6 +31,7 @@ type ConversationProps = {
   autoStart?: boolean;
   conversationRef?: React.RefObject<ReturnType<typeof useConversation>>;
   candidateName?: string;
+  interviewId: string;
 };
 
 export function Conversation({
@@ -38,6 +39,7 @@ export function Conversation({
   autoStart = false,
   conversationRef,
   candidateName,
+  interviewId,
 }: ConversationProps) {
   const isActive = useRef(false);
   const messageHandlerRef = useRef(onMessage);
@@ -131,7 +133,8 @@ export function Conversation({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
         signedUrl,
         dynamicVariables: {
-          user_name: candidateName || 'Candidate',
+          userName: candidateName || 'Candidate',
+          interviewId,
         },
       });
     } catch (error) {
@@ -140,7 +143,7 @@ export function Conversation({
       startTimeRef.current = null;
       setStatus('error');
     }
-  }, [candidateName]);
+  }, [candidateName, interviewId]);
 
   const stopConversation = useCallback(async () => {
     if (!isActive.current) return;

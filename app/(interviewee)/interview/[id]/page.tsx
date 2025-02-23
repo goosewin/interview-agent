@@ -110,11 +110,15 @@ export default function Interview() {
     fetch('/api/tools/code-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, language }),
+      body: JSON.stringify({
+        code,
+        language,
+        interviewId: interview?.id
+      }),
     }).catch((error) => {
       console.error('Failed to update code:', error);
     });
-  }, [code, language]);
+  }, [code, language, interview?.id]);
 
   useEffect(() => {
     voiceMessagesRef.current = voiceMessages;
@@ -737,7 +741,7 @@ export default function Interview() {
                 className={cn(
                   'space-y-4',
                   (!selectedAudioDevice || !selectedPlaybackDevice) &&
-                    'pointer-events-none opacity-50'
+                  'pointer-events-none opacity-50'
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -793,7 +797,7 @@ export default function Interview() {
               className={cn(
                 'space-y-4',
                 (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) &&
-                  'pointer-events-none opacity-50'
+                'pointer-events-none opacity-50'
               )}
             >
               <div className="flex items-start space-x-3">
@@ -919,6 +923,7 @@ export default function Interview() {
                   autoStart={isInterviewStarted}
                   conversationRef={conversationRef}
                   candidateName={interview.candidateName}
+                  interviewId={interview.id}
                 />
                 <div className="mt-4 h-48 overflow-y-auto">
                   <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />
