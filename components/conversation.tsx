@@ -3,11 +3,18 @@
 import { useConversation } from '@11labs/react';
 import { useCallback } from 'react';
 
-export function Conversation() {
+export function Conversation({ onMessage }: { onMessage: (message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => void }) {
   const conversation = useConversation({
     onConnect: () => console.log('Connected'),
-    onDisconnect: () => console.log('Disconnected'),
-    onMessage: (message: unknown) => console.log('Message:', message),
+    onDisconnect: () => {
+      console.log('Disconnected');
+      // Clear messages when conversation ends
+      onMessage({ message: '', source: 'ai', clear: true });
+    },
+    onMessage: (message: unknown) => {
+      console.log('Message:', message);
+      onMessage(message as { message: string; source: 'ai' | 'user' });
+    },
     onError: (error: Error) => console.error('Error:', error),
   });
 
@@ -16,6 +23,9 @@ export function Conversation() {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      // Clear messages when starting new conversation
+      onMessage({ message: '', source: 'ai', clear: true });
+
       // Start the conversation with your agent
       await conversation.startSession({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
@@ -23,7 +33,7 @@ export function Conversation() {
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }
-  }, [conversation]);
+  }, [conversation, onMessage]);
 
   const stopConversation = useCallback(async () => {
     await conversation.endSession();

@@ -56,6 +56,16 @@ export const interviews = pgTable('interviews', {
   isScreenRecorded: boolean('is_screen_recorded').default(false),
   isAudioRecorded: boolean('is_audio_recorded').default(false),
   metadata: jsonb('metadata').default({}).notNull(),
+  messages: jsonb('messages').$type<{
+    role: 'user' | 'agent';
+    message: string;
+    time_in_call_secs: number;
+  }[]>().default([]),
+  transcript: jsonb('transcript').$type<{
+    role: 'user' | 'agent';
+    message: string;
+    time_in_call_secs: number;
+  }[]>().default([]),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

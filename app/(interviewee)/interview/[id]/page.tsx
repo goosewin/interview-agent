@@ -1,5 +1,7 @@
 'use client';
 
+import ChatView from '@/components/ChatView';
+import { Conversation } from '@/components/conversation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,21 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { InterviewRecorder } from '@/lib/recording';
 import { cn } from '@/lib/utils';
 import { Editor, type OnMount } from '@monaco-editor/react';
 import { Check, Play, X } from 'lucide-react';
 import type { editor } from 'monaco-editor';
-import { MDXRemote } from 'next-mdx-remote/rsc';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { use, useEffect, useRef, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+// import ProblemContent from './ProblemContent';
 
 type Interview = {
   id: string;
   problemId: string;
   language: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
+  problemDescription: string;
 };
 
 type DeviceInfo = {
@@ -49,8 +52,9 @@ const languages = [
   { value: 'kotlin', label: 'Kotlin' }
 ];
 
-export default function Interview({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function Interview() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,7 +63,14 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
   const [timeLeft, setTimeLeft] = useState(45 * 60); // 45 minutes in seconds
   const [output, setOutput] = useState('');
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const [problemContent, setProblemContent] = useState('');
+  const [, setProblemContent] = useState('');
+  const [, setIsRunning] = useState(false);
+  const [language, setLanguage] = useState('javascript');
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceMessages, setVoiceMessages] = useState<Array<{
+    message: string;
+    source: 'ai' | 'user';
+  }>>([]);
 
   // Preflight state
   const [preflightComplete, setPreflightComplete] = useState(false);
@@ -75,6 +86,8 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
   const [audioDevices, setAudioDevices] = useState<DeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
+
+  const recorderRef = useRef<InterviewRecorder | null>(null);
 
   useEffect(() => {
     async function fetchInterview() {
@@ -92,14 +105,9 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
         }
 
         setInterview(data);
+        setProblemContent(data.problemDescription);
 
-        // Fetch problem content
-        const problemResponse = await fetch(`/api/problems/${data.problemId}`);
-        if (!problemResponse.ok) {
-          throw new Error('Failed to fetch problem');
-        }
-        const problemData = await problemResponse.json();
-        setProblemContent(problemData.content);
+        if (data.language) setLanguage(data.language);
       } catch (error) {
         console.error('Error fetching interview:', error);
         setError('Failed to load interview');
@@ -247,6 +255,88 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
       return () => clearInterval(timer);
     }
   }, [preflightComplete, timeLeft]);
+
+  const handleVoiceMessage = useCallback((message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => {
+    if (message.clear) {
+      setVoiceMessages([]);
+      return;
+    }
+
+    setVoiceMessages(prev => [...prev, { message: message.message, source: message.source }]);
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    if (!interview) return;
+
+    try {
+      setIsRecording(true);
+      setIsRunning(true);
+      // Clear previous messages when starting new session
+      setVoiceMessages([]);
+
+      // Start screen recording
+      recorderRef.current = new InterviewRecorder({
+        onError: (error) => {
+          console.error('Recording error:', error);
+          setIsRecording(false);
+          setIsRunning(false);
+        },
+      });
+      await recorderRef.current.startRecording();
+
+      // Update interview status
+      await fetch(`/api/interviews/${interview.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'in_progress',
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      setIsRecording(false);
+      setIsRunning(false);
+    }
+  }, [interview]);
+
+  const stopRecording = useCallback(async () => {
+    if (!interview || !recorderRef.current) return;
+
+    try {
+      setIsRecording(false);
+      setIsRunning(false);
+
+      // Stop screen recording
+      const recording = await recorderRef.current.stopRecording();
+      recorderRef.current = null;
+
+      // Upload recording
+      const formData = new FormData();
+      formData.append('recording', recording, 'recording.webm');
+      formData.append('interviewId', interview.id);
+      formData.append('action', 'stop');
+
+      await fetch('/api/recording', {
+        method: 'POST',
+        body: formData,
+      });
+
+      // Update interview status
+      await fetch(`/api/interviews/${interview.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'completed',
+          code,
+        }),
+      });
+
+      // Clear messages when stopping session
+      setVoiceMessages([]);
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+    }
+  }, [interview, code]);
 
   if (isLoading) {
     return (
@@ -416,42 +506,26 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
           <div className="flex h-full flex-col gap-4 p-4">
             <div className="grid grid-cols-2 gap-4">
               {/* Camera View */}
-              <Card>
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-sm">Candidate</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="relative aspect-square bg-black rounded-lg overflow-hidden">
-                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                  </div>
-                </CardContent>
+              <Card className="p-4">
+                <div className="relative aspect-square bg-black rounded-lg overflow-hidden">
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                </div>
               </Card>
 
-              {/* AI Profile */}
-              <Card>
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-sm">AI Interviewer</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="relative aspect-square rounded-lg overflow-hidden">
-                    <Image
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-02-22%20at%204.37.30%E2%80%AFPM-E9usIrXBPhRMPQdCoJdKFnchP8NehT.png"
-                      alt="AI Interviewer"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                </CardContent>
+              {/* Timer and Recording Controls */}
+              <Card className="p-4 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="font-bold text-xl text-primary">{formatTime(timeLeft)}</div>
+                  <Button
+                    onClick={isRecording ? stopRecording : startRecording}
+                    variant={isRecording ? "destructive" : "default"}
+                    className="mt-2"
+                  >
+                    {isRecording ? 'Stop Recording' : 'Start Recording'}
+                  </Button>
+                </div>
               </Card>
             </div>
-
-            {/* Timer */}
-            <Card>
-              <CardContent className="p-4 flex items-center justify-center">
-                <span className="font-medium text-muted-foreground mr-2">Time Remaining:</span>
-                <span className="font-bold text-xl text-primary">{formatTime(timeLeft)}</span>
-              </CardContent>
-            </Card>
 
             {/* Problem Description */}
             <Card className="flex-1 flex flex-col overflow-hidden">
@@ -459,8 +533,19 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
                 <CardTitle>Problem</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto prose prose-invert max-w-none">
-                <MDXRemote source={problemContent} />
+                {/* <ProblemContent content={problemContent} /> */}
               </CardContent>
+            </Card>
+
+            {/* Voice Chat */}
+            <Card className="p-4">
+              <Conversation onMessage={handleVoiceMessage} />
+              <div className="mt-4 h-48 overflow-y-auto">
+                <ChatView
+                  interviewId={interview.id}
+                  voiceMessages={voiceMessages}
+                />
+              </div>
             </Card>
           </div>
         </ResizablePanel>
@@ -471,7 +556,7 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
           <div className="flex h-full flex-col p-4">
             {/* Language Selector */}
             <div className="mb-4">
-              <Select value={interview?.language} onValueChange={(value) => setInterview(prev => prev ? { ...prev, language: value } : null)}>
+              <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select Language" />
                 </SelectTrigger>
@@ -490,7 +575,7 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
                 <div className="h-full bg-zinc-950 p-4">
                   <Editor
                     height="100%"
-                    defaultLanguage={interview?.language}
+                    defaultLanguage={language}
                     value={code}
                     onChange={(value) => setCode(value || '')}
                     theme="vs-dark"

@@ -1,5 +1,36 @@
-import { getInterviewByIdentifier, getProblem } from '@/lib/db';
+import { getInterviewByIdentifier } from '@/lib/db';
 import { NextResponse } from 'next/server';
+
+// Hardcoded problem for now
+const SAMPLE_PROBLEM = `# Two Sum
+
+Given an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers in the array such that they add up to \`target\`.
+
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.
+
+## Example 1:
+
+\`\`\`js
+Input: nums = [2,7,11,15], target = 9
+Output: [0,1]
+Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].
+\`\`\`
+
+## Example 2:
+
+\`\`\`js
+Input: nums = [3,2,4], target = 6
+Output: [1,2]
+\`\`\`
+
+## Constraints:
+* 2 ≤ nums.length ≤ 10⁴
+* -10⁹ ≤ nums[i] ≤ 10⁹
+* -10⁹ ≤ target ≤ 10⁹
+* Only one valid answer exists.
+`;
 
 export async function POST(request: Request) {
   try {
@@ -13,19 +44,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
     }
 
-    // If we don't have a problem description, try to fetch it from the problems table
-    if (!interview.problemDescription && interview.metadata?.problemId) {
-      const problem = await getProblem(interview.metadata.problemId, interview.userId);
-      if (!problem) {
-        return NextResponse.json({ error: 'Problem not found' }, { status: 404 });
-      }
-      return NextResponse.json({
-        ...interview,
-        problemDescription: problem.description,
-      });
-    }
-
-    return NextResponse.json(interview);
+    // Always return the hardcoded problem for now
+    return NextResponse.json({
+      ...interview,
+      problemDescription: SAMPLE_PROBLEM,
+    });
   } catch (error) {
     console.error('Error joining interview:', error);
     return NextResponse.json(
