@@ -106,18 +106,19 @@ export default function Interview() {
 
   useEffect(() => {
     codeRef.current = code;
-    // Update server tool endpoint
-    fetch('/api/tools/code-update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code,
-        language,
-        interviewId: interview?.id
-      }),
-    }).catch((error) => {
-      console.error('Failed to update code:', error);
-    });
+    if (interview?.id) {
+      fetch('/api/tools/code-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          language,
+          interviewId: interview.id
+        }),
+      }).catch((error) => {
+        console.error('Failed to update code:', error);
+      });
+    }
   }, [code, language, interview?.id]);
 
   useEffect(() => {
