@@ -1,84 +1,92 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Editor, { type OnMount } from "@monaco-editor/react"
-import { Play } from "lucide-react"
-import Image from "next/image"
-import { useEffect, useRef, useState } from "react"
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Editor, type OnMount } from '@monaco-editor/react';
+import { Play } from 'lucide-react';
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
 
 const languages = [
-  { value: "javascript", label: "JavaScript" },
-  { value: "typescript", label: "TypeScript" },
-  { value: "python", label: "Python" },
-]
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'python', label: 'Python' },
+];
+
+type IStandaloneCodeEditor = Parameters<OnMount>[0];
 
 export default function InterviewPage() {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const editorRef = useRef<any>(null)
-  const [timeLeft, setTimeLeft] = useState(45 * 60) // 45 minutes in seconds
-  const [isRunning, setIsRunning] = useState(false)
-  const [language, setLanguage] = useState("javascript")
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const editorRef = useRef<IStandaloneCodeEditor>(null);
+  const [timeLeft, setTimeLeft] = useState(45 * 60); // 45 minutes in seconds
+  const [isRunning, setIsRunning] = useState(false);
+  const [language, setLanguage] = useState('javascript');
   const [code, setCode] = useState(
-    `function solve(input) {\n  // Your code here\n}\n\n// Example test case\nconsole.log(solve([1, 2, 3]));`,
-  )
-  const [output, setOutput] = useState("")
+    `function solve(input) {\n  // Your code here\n}\n\n// Example test case\nconsole.log(solve([1, 2, 3]));`
+  );
+  const [output, setOutput] = useState('');
 
   useEffect(() => {
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
-          videoRef.current.srcObject = stream
+          videoRef.current.srcObject = stream;
         }
       } catch (error) {
-        console.error("Error accessing camera:", error)
+        console.error('Error accessing camera:', error);
       }
-    }
+    };
 
-    startCamera()
-  }, [])
+    startCamera();
+  }, []);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout
+    let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
       timer = setInterval(() => {
         setTimeLeft((prevTime) => {
           if (prevTime <= 0) {
-            clearInterval(timer)
-            setIsRunning(false)
-            return 0
+            clearInterval(timer);
+            setIsRunning(false);
+            return 0;
           }
-          return prevTime - 1
-        })
-      }, 1000)
+          return prevTime - 1;
+        });
+      }, 1000);
     }
-    return () => clearInterval(timer)
-  }, [isRunning, timeLeft])
+    return () => clearInterval(timer);
+  }, [isRunning, timeLeft]);
 
   const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
-  }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   const handleEditorDidMount: OnMount = (editor) => {
-    editorRef.current = editor
-  }
+    editorRef.current = editor;
+  };
 
   const handleRunCode = () => {
     if (editorRef.current) {
-      const editorCode = editorRef.current.getValue()
+      const editorCode = editorRef.current.getValue();
       try {
         // This is a simple evaluation. In a real-world scenario, you'd want to use a safer method
         // of code execution, possibly on the server-side.
-        const result = eval(editorCode)
-        setOutput(`Output: ${result}\n`)
+        const result = eval(editorCode);
+        setOutput(`Output: ${result}\n`);
       } catch (error) {
-        setOutput(`Error: ${error}\n`)
+        setOutput(`Error: ${error}\n`);
       }
     }
-  }
+  };
 
   return (
     <div className="h-screen bg-background">
@@ -92,8 +100,14 @@ export default function InterviewPage() {
                   <CardTitle className="text-sm">Candidate</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="relative aspect-square bg-black rounded-lg overflow-hidden">
-                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -104,13 +118,8 @@ export default function InterviewPage() {
                   <CardTitle className="text-sm">AI Interviewer</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="relative aspect-square rounded-lg overflow-hidden">
-                    <Image
-                      src=""
-                      alt="AI Interviewer"
-                      fill
-                      className="object-cover"
-                    />
+                  <div className="relative aspect-square overflow-hidden rounded-lg">
+                    <Image src="" alt="AI Interviewer" fill className="object-cover" />
                   </div>
                 </CardContent>
               </Card>
@@ -118,21 +127,22 @@ export default function InterviewPage() {
 
             {/* Timer */}
             <Card>
-              <CardContent className="p-4 flex items-center justify-center">
-                <span className="font-medium text-muted-foreground mr-2">Time Remaining:</span>
-                <span className="font-bold text-xl text-primary">{formatTime(timeLeft)}</span>
+              <CardContent className="flex items-center justify-center p-4">
+                <span className="mr-2 font-medium text-muted-foreground">Time Remaining:</span>
+                <span className="text-xl font-bold text-primary">{formatTime(timeLeft)}</span>
               </CardContent>
             </Card>
 
             {/* Problem Description */}
-            <Card className="flex-1 flex flex-col overflow-hidden">
+            <Card className="flex flex-1 flex-col overflow-hidden">
               <CardHeader>
                 <CardTitle>Problem: Array Sum</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 overflow-y-auto">
-                <p className="text-muted-foreground leading-relaxed">
-                  Write a function that takes an array of numbers and returns their sum. The function should handle
-                  empty arrays by returning 0, and should be able to process both positive and negative numbers.
+                <p className="leading-relaxed text-muted-foreground">
+                  Write a function that takes an array of numbers and returns their sum. The
+                  function should handle empty arrays by returning 0, and should be able to process
+                  both positive and negative numbers.
                   <br />
                   <br />
                   Examples:
@@ -187,7 +197,7 @@ export default function InterviewPage() {
                     defaultLanguage="javascript"
                     language={language}
                     value={code}
-                    onChange={(value) => setCode(value || "")}
+                    onChange={(value) => setCode(value || '')}
                     theme="vs-dark"
                     options={{
                       minimap: { enabled: false },
@@ -200,16 +210,18 @@ export default function InterviewPage() {
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={30}>
-                <div className="h-full bg-black p-4 relative">
+                <div className="relative h-full bg-black p-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-white"
+                    className="absolute right-2 top-2 bg-green-600 text-white hover:bg-green-700"
                     onClick={handleRunCode}
                   >
-                    <Play className="h-4 w-4 mr-2" /> Run
+                    <Play className="mr-2 h-4 w-4" /> Run
                   </Button>
-                  <pre className="text-white font-mono mt-8 overflow-auto h-[calc(100%-3rem)]">{output}</pre>
+                  <pre className="mt-8 h-[calc(100%-3rem)] overflow-auto font-mono text-white">
+                    {output}
+                  </pre>
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
@@ -217,5 +229,5 @@ export default function InterviewPage() {
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
-  )
+  );
 }

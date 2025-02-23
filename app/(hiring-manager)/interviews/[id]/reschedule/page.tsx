@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -148,7 +149,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
         <p>Interview not found.</p>
         <Button asChild>
-          <a href="/interviews">Back to Interviews</a>
+          <Link href="/interviews">Back to Interviews</Link>
         </Button>
       </div>
     );
