@@ -19,14 +19,20 @@ export default function Home() {
     source: 'ai' | 'user';
   }>>([]);
   const recorderRef = useRef<InterviewRecorder | null>(null);
-  const handleVoiceMessage = useCallback((message: { message: string; source: 'ai' | 'user' }) => {
+  const handleVoiceMessage = useCallback((message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => {
     console.log('handleVoiceMessage - received message:', message);
-    console.log('handleVoiceMessage - current voiceMessages:', voiceMessages);
+    
+    if (message.clear) {
+      setVoiceMessages([]);
+      return;
+    }
+
     setVoiceMessages(prev => {
+      console.log('handleVoiceMessage - current messages:', prev);
       console.log('handleVoiceMessage - updating with:', [...prev, message]);
       return [...prev, message];
     });
-  }, [voiceMessages]);
+  }, []); // No dependencies needed since we use the function form of setState
 
   const startRecording = useCallback(async () => {
     try {
@@ -48,6 +54,8 @@ export default function Home() {
       const { id: interviewId } = await response.json();
       setCurrentInterviewId(interviewId);
       setIsRecording(true);
+      // Clear previous messages when starting new session
+      setVoiceMessages([]);
     } catch (error) {
       console.error('Failed to start recording:', error);
     }
@@ -112,6 +120,9 @@ export default function Home() {
           status: 'completed',
         }),
       });
+      // Clear messages when stopping session
+      setVoiceMessages([]);
+      setCurrentInterviewId(undefined);
     } catch (error) {
       console.error('Failed to stop recording:', error);
     }
