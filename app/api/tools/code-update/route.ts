@@ -1,5 +1,4 @@
 import { getInterview, updateInterview } from '@/lib/db';
-import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
@@ -7,7 +6,10 @@ export async function POST(req: Request) {
     const { interviewId, code, language } = body;
 
     if (!interviewId) {
-      return NextResponse.json({ error: 'Interview ID is required' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'Interview ID is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     await updateInterview(interviewId, {
@@ -16,10 +18,15 @@ export async function POST(req: Request) {
       updatedAt: new Date(),
     });
 
-    return NextResponse.json({ success: true });
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error updating code:', error);
-    return NextResponse.json({ error: 'Failed to update code' }, { status: 500 });
+    return new Response(JSON.stringify({ error: 'Failed to update code' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
 
@@ -45,16 +52,13 @@ export async function GET(req: Request) {
 
     const startTime = interview.recordingStartedAt?.getTime() || Date.now();
 
-    return new Response(
-      JSON.stringify({
-        language: interview.language || 'javascript',
-        code: interview.code || '',
-        timeInCallSecs: Math.floor((Date.now() - startTime) / 1000),
-      }),
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({
+      language: interview.language || 'javascript',
+      code: interview.code || '',
+      timeInCallSecs: Math.floor((Date.now() - startTime) / 1000),
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error getting code:', error);
     return new Response(JSON.stringify({ error: 'Failed to get code' }), {

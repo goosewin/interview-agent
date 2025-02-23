@@ -13,10 +13,15 @@ const isProtectedRoute = createRouteMatcher([
   '/api/messages(.*)',
   '/api/problems(.*)',
   '/api/recording(.*)',
+  // Exclude /api/tools/* from protection
+  '!/api/tools/(.*)',
 ]);
 
 export default clerkMiddleware(
   async (auth, req) => {
+    // Skip auth for /api/tools routes
+    if (req.nextUrl.pathname.startsWith('/api/tools/')) return;
+
     if (isProtectedRoute(req)) await auth.protect();
   },
   {
