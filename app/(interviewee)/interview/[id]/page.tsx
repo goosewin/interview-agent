@@ -1,6 +1,7 @@
 'use client';
 
 import ChatView from '@/components/ChatView';
+import Image from 'next/image';
 import { Conversation } from '@/components/conversation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +57,7 @@ const languages = [
 
 export default function Interview() {
   const params = useParams();
-  const id = params.id as string;
+  const identifier = params.id as string;
   const router = useRouter();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,7 +181,7 @@ export default function Interview() {
   useEffect(() => {
     async function fetchInterview() {
       try {
-        const response = await fetch(`/api/interviews/join/${id}`);
+        const response = await fetch(`/api/interviews/join/${identifier}`);
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to fetch interview');
@@ -199,7 +200,7 @@ export default function Interview() {
         if (data.language) setLanguage(data.language);
 
         // Update last active timestamp
-        await fetch(`/api/interviews/${id}`, {
+        await fetch(`/api/interviews/${identifier}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -218,7 +219,7 @@ export default function Interview() {
     // Set up periodic heartbeat
     const heartbeatInterval = setInterval(async () => {
       try {
-        await fetch(`/api/interviews/${id}`, {
+        await fetch(`/api/interviews/${identifier}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -231,7 +232,7 @@ export default function Interview() {
     }, 30000); // Every 30 seconds
 
     return () => clearInterval(heartbeatInterval);
-  }, [id, router]);
+  }, [identifier, router]);
 
   // Cleanup media streams on unmount
   useEffect(() => {
@@ -906,7 +907,7 @@ export default function Interview() {
                 <Card className="p-4">
                   <div className="font-bold">AI Interviewer</div>
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                    {/* AI interviewer video feed */}
+                    <Image src="/interviewer.png" alt="AI Interviewer" fill className="object-cover" />
                   </div>
                 </Card>
               </div>

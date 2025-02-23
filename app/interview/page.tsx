@@ -117,15 +117,11 @@ export default function InterviewPage() {
               </Card>
 
               {/* AI Profile */}
-              <Card>
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-sm">AI Interviewer</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="relative aspect-square overflow-hidden rounded-lg">
-                    <Image src="" alt="AI Interviewer" fill className="object-cover" />
-                  </div>
-                </CardContent>
+              <Card className="p-4">
+                <div className="font-bold">AI Interviewer</div>
+                <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                  <Image src="/interviewer.png" alt="AI Interviewer" fill className="object-cover" />
+                </div>
               </Card>
             </div>
 
