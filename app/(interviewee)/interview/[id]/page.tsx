@@ -113,7 +113,7 @@ export default function Interview() {
         body: JSON.stringify({
           code,
           language,
-          interviewId: interview.id
+          interviewId: interview.id,
         }),
       }).catch((error) => {
         console.error('Failed to update code:', error);
@@ -745,7 +745,7 @@ export default function Interview() {
                 className={cn(
                   'space-y-4',
                   (!selectedAudioDevice || !selectedPlaybackDevice) &&
-                  'pointer-events-none opacity-50'
+                    'pointer-events-none opacity-50'
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -801,7 +801,7 @@ export default function Interview() {
               className={cn(
                 'space-y-4',
                 (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) &&
-                'pointer-events-none opacity-50'
+                  'pointer-events-none opacity-50'
               )}
             >
               <div className="flex items-start space-x-3">
