@@ -14,24 +14,22 @@ const updateInterviewSchema = z.object({
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const user = await currentUser();
-    if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
     const interview = await getInterview(id);
+
     if (!interview) {
-      return new NextResponse('Interview not found', { status: 404 });
+      return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
     }
 
-    if (interview.userId !== user.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    // For non-public routes, verify user ownership
+    const user = await currentUser();
+    if (user && interview.userId !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     return NextResponse.json(interview);
   } catch (error) {
     console.error('Failed to fetch interview:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -40,16 +38,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const user = await currentUser();
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const interview = await getInterview(id);
     if (!interview) {
-      return new NextResponse('Interview not found', { status: 404 });
+      return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
     }
 
     if (interview.userId !== user.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -68,6 +66,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ errors: error.errors }, { status: 400 });
     }
     console.error('Failed to update interview:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

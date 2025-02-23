@@ -1,6 +1,7 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -24,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -34,166 +36,179 @@ type Interview = {
   candidateName: string;
   candidateEmail: string;
   scheduledFor: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
   metadata: {
     difficulty: 'easy' | 'medium' | 'hard';
   };
+  status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
+  identifier: string;
 };
 
-export default function Interviews() {
+export default function InterviewsPage() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isLoadingCancel, setIsLoadingCancel] = useState(false);
 
   useEffect(() => {
+    async function fetchInterviews() {
+      try {
+        const response = await fetch('/api/interviews');
+        const data = await response.json();
+        setInterviews(data);
+      } catch (error) {
+        console.error('Error fetching interviews:', error);
+      }
+    }
     fetchInterviews();
   }, []);
 
-  async function fetchInterviews() {
-    try {
-      const response = await fetch('/api/interviews');
-      if (!response.ok) throw new Error('Failed to fetch interviews');
-      const data = await response.json();
-      setInterviews(data);
-    } catch (error) {
-      console.error('Error fetching interviews:', error);
-    }
-  }
-
   async function cancelInterview(id: string) {
-    setIsLoading(true);
+    setIsLoadingCancel(true);
     try {
-      const response = await fetch(`/api/interviews/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' }),
+      const response = await fetch(`/api/interviews/${id}/cancel`, {
+        method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to cancel interview');
-      await fetchInterviews();
-      setIsCancelDialogOpen(false);
+      const updatedInterviews = interviews.map((interview) =>
+        interview.id === id ? { ...interview, status: 'cancelled' as const } : interview
+      );
+      setInterviews(updatedInterviews);
+      setShowCancelDialog(false);
     } catch (error) {
       console.error('Error cancelling interview:', error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingCancel(false);
+    }
+  }
+
+  function formatDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString();
+  }
+
+  function getStatusVariant(status: string): 'default' | 'destructive' | 'outline' | 'secondary' | 'destructive' {
+    switch (status) {
+      case 'not_started':
+        return 'default';
+      case 'in_progress':
+        return 'secondary';
+      case 'completed':
+        return 'destructive';
+      case 'cancelled':
+        return 'destructive';
+      default:
+        return 'default';
+    }
+  }
+
+  async function handleCancelInterview() {
+    setIsLoadingCancel(true);
+    try {
+      await cancelInterview(selectedInterview!.id);
+      setShowCancelDialog(false);
+    } catch (error) {
+      console.error('Error cancelling interview:', error);
+    } finally {
+      setIsLoadingCancel(false);
     }
   }
 
   return (
-    <div className="w-full">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Interviews</h1>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Interviews</h1>
         <Button asChild>
-          <Link href="/interviews/new">Schedule New Interview</Link>
+          <Link href="/interviews/new">New Interview</Link>
         </Button>
       </div>
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[300px]">Candidate</TableHead>
-              <TableHead className="w-[150px]">Date</TableHead>
-              <TableHead className="w-[150px]">Time</TableHead>
-              <TableHead className="w-[100px]">Difficulty</TableHead>
-              <TableHead className="w-[150px]">Status</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[200px]">Candidate</TableHead>
+            <TableHead>Interview ID</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-[100px]">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {interviews.map((interview) => (
+            <TableRow key={interview.id}>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Avatar>
+                    <AvatarFallback>
+                      {interview.candidateName?.[0] ?? interview.candidateEmail?.[0] ?? '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{interview.candidateName}</div>
+                    <div className="text-sm text-muted-foreground">{interview.candidateEmail}</div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <code className="rounded bg-muted px-2 py-1">{interview.identifier}</code>
+              </TableCell>
+              <TableCell>{formatDate(interview.scheduledFor)}</TableCell>
+              <TableCell>
+                <Badge variant={getStatusVariant(interview.status)}>
+                  {interview.status.replace('_', ' ')}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link href={`/interviews/${interview.id}`}>View Details</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/interviews/${interview.id}/reschedule`}>Reschedule</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => {
+                        setSelectedInterview(interview);
+                        setShowCancelDialog(true);
+                      }}
+                    >
+                      Cancel
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {interviews.map((interview) => {
-              const date = new Date(interview.scheduledFor);
-              return (
-                <TableRow key={interview.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage
-                          src={`https://avatar.vercel.sh/${interview.candidateEmail}`}
-                          alt={interview.candidateName}
-                        />
-                        <AvatarFallback>
-                          {interview.candidateName
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{interview.candidateName}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {interview.candidateEmail}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{date.toLocaleDateString()}</TableCell>
-                  <TableCell>{date.toLocaleTimeString()}</TableCell>
-                  <TableCell className="capitalize">{interview.metadata.difficulty}</TableCell>
-                  <TableCell className="capitalize">{interview.status}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/interviews/${interview.id}/reschedule`}>Reschedule</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            setSelectedInterview(interview);
-                            setIsCancelDialogOpen(true);
-                          }}
-                          disabled={interview.status === 'cancelled'}
-                        >
-                          Cancel
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          ))}
+        </TableBody>
+      </Table>
+
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Interview</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel this interview? This action cannot be undone.
+              Are you sure you want to cancel the interview with {selectedInterview?.candidateName} on{' '}
+              {selectedInterview && formatDate(selectedInterview.scheduledFor)}?
             </DialogDescription>
           </DialogHeader>
-          {selectedInterview && (
-            <div className="py-4">
-              <p>
-                <strong>Candidate:</strong> {selectedInterview.candidateName}
-              </p>
-              <p>
-                <strong>Date:</strong>{' '}
-                {new Date(selectedInterview.scheduledFor).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Time:</strong>{' '}
-                {new Date(selectedInterview.scheduledFor).toLocaleTimeString()}
-              </p>
-            </div>
-          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
-              Keep Interview
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+              No, keep it
             </Button>
             <Button
               variant="destructive"
-              onClick={() => selectedInterview && cancelInterview(selectedInterview.id)}
-              disabled={isLoading}
+              onClick={handleCancelInterview}
+              disabled={isLoadingCancel}
             >
-              {isLoading ? 'Cancelling...' : 'Cancel Interview'}
+              {isLoadingCancel ? 'Cancelling...' : 'Yes, cancel it'}
             </Button>
           </DialogFooter>
         </DialogContent>

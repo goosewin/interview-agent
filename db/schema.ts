@@ -36,6 +36,7 @@ export const problems = pgTable('problems', {
 
 export const interviews = pgTable('interviews', {
   id: uuid('id').primaryKey().defaultRandom(),
+  identifier: text('identifier').notNull().unique(),
   userId: text('user_id').notNull(), // Clerk user ID
   candidateId: uuid('candidate_id')
     .references(() => candidates.id)
