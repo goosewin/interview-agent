@@ -18,14 +18,14 @@ export async function GET() {
   try {
     const user = await currentUser();
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const interviews = await getUserInterviews(user.id);
     return NextResponse.json(interviews);
   } catch (error) {
     console.error('Failed to fetch interviews:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   try {
     const user = await currentUser();
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -80,6 +80,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ errors: error.errors }, { status: 400 });
     }
     console.error('Failed to create interview:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
