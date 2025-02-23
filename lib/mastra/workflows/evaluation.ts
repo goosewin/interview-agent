@@ -40,6 +40,7 @@ interface InterviewData {
   transcript: string[];
   language: string;
   candidateId: string;
+  candidateName: string;
 }
 
 interface CandidateData {
@@ -164,11 +165,57 @@ const makeHiringDecision = new Step({
       technicalEvaluation,
       communicationEvaluation,
       candidateData,
-      interviewId,
-      candidateId,
+      steps,
     } = context as InterviewEvaluationContext;
+
+    const { interviewId } = context.triggerData;
+    const gatherDataStep = steps.gatherInterviewData;
+    if (!gatherDataStep || gatherDataStep.status !== 'success') {
+      throw new Error('Required interview data not found');
+    }
+    const { candidateId } = gatherDataStep.output;
+
     if (!technicalEvaluation || !communicationEvaluation) {
-      throw new Error('Missing required evaluations');
+      // Instead of throwing, create a no-hire decision
+      const hiringDecision: z.infer<typeof HiringDecisionSchema> = {
+        recommendation: 'no_hire' as const,
+        overallScore: 0,
+        reasoning: 'Unable to evaluate candidate due to incomplete interview data',
+        nextSteps: ['Schedule a new interview with proper problem description']
+      };
+
+      // Store the evaluation even if minimal
+      await recruiterAgent.tools.storeEvaluation.execute({
+        context: {
+          interviewId,
+          candidateId,
+          technicalEvaluation: {
+            technicalScore: 0,
+            codeQuality: 'Unable to evaluate',
+            problemSolving: 'Unable to evaluate',
+            technicalStrengths: [],
+            areasForImprovement: ['Complete interview with proper problem description']
+          },
+          communicationEvaluation: {
+            communicationScore: 0,
+            clarity: 'Unable to evaluate',
+            collaboration: 'Unable to evaluate',
+            communicationStrengths: [],
+            communicationWeaknesses: ['Complete interview with proper problem description']
+          },
+          hiringDecision,
+          steps: context.steps,
+          triggerData: context.triggerData,
+          attempts: context.attempts,
+          getStepPayload: context.getStepPayload,
+        },
+        suspend: () => Promise.resolve(),
+      });
+
+      return {
+        ...context,
+        hiringDecision,
+      };
     }
 
     const prompt = `${HIRING_DECISION_PROMPT}

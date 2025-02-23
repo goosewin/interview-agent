@@ -1,20 +1,16 @@
-import { db } from '@/db';
-import { interviews } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getInterviewByIdentifier } from '@/lib/db';
 import { mastra } from '../index';
 
-export async function handleInterviewCompletion(interviewId: string) {
-  console.log('[handleInterviewCompletion] Starting completion for interview:', interviewId);
+export async function handleInterviewCompletion(identifier: string) {
+  console.log('[handleInterviewCompletion] Starting completion for interview:', identifier);
 
-  // Verify interview exists and is ready for evaluation
-  const interview = await db.query.interviews.findFirst({
-    where: eq(interviews.id, interviewId),
-  });
+  // Get interview by identifier first
+  const interview = await getInterviewByIdentifier(identifier);
 
   console.log('[handleInterviewCompletion] Interview lookup result:', interview ? 'found' : 'not found');
 
   if (!interview) {
-    console.error('[handleInterviewCompletion] Interview not found for ID:', interviewId);
+    console.error('[handleInterviewCompletion] Interview not found for identifier:', identifier);
     throw new Error('Interview not found');
   }
 
@@ -25,7 +21,7 @@ export async function handleInterviewCompletion(interviewId: string) {
 
   console.log('[handleInterviewCompletion] Starting evaluation workflow with ID:', interview.id);
 
-  // Start the evaluation workflow
+  // Start the evaluation workflow with UUID
   await mastra.getWorkflow('interviewEvaluationWorkflow').execute({
     triggerData: {
       interviewId: interview.id,

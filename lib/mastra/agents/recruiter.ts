@@ -19,7 +19,7 @@ const getInterviewData = createTool({
     interviewId: z.string(),
   }),
   execute: async (context) => {
-    const { interviewId } = context.context;
+    const { interviewId } = context.context.triggerData;
     console.log('[getInterviewData] Looking up interview with ID:', interviewId);
 
     const interview = await db.query.interviews.findFirst({
@@ -60,11 +60,16 @@ const getCandidateData = createTool({
   execute: async (context) => {
     const { candidateId } = context.context;
 
+    console.log('[getCandidateData] Looking up candidate with ID:', candidateId);
+
     const candidate = await db.query.candidates.findFirst({
       where: eq(candidates.id, candidateId),
     });
 
+    console.log('[getCandidateData] Candidate lookup result:', candidate ? 'found' : 'not found');
+
     if (!candidate) {
+      console.error('[getCandidateData] Candidate not found for ID:', candidateId);
       throw new Error('Candidate not found');
     }
 
@@ -97,41 +102,45 @@ const storeEvaluation = createTool({
   }),
   execute: async (context) => {
     const {
-      interviewId,
       candidateId,
       technicalEvaluation,
       communicationEvaluation,
       hiringDecision,
     } = context.context;
 
-    // Get the interview first to get its ID
-    const interview = await db.query.interviews.findFirst({
-      where: eq(interviews.id, interviewId),
-    });
+    const { interviewId } = context.context.triggerData;
 
-    if (!interview) {
-      throw new Error('Interview not found');
+    console.log('[storeEvaluation] Storing evaluation for interview:', interviewId);
+    console.log('[storeEvaluation] With candidate:', candidateId);
+
+    try {
+      await db.insert(evaluations).values({
+        interviewId,
+        candidateId,
+        technicalScore: String(technicalEvaluation.technicalScore),
+        communicationScore: String(communicationEvaluation.communicationScore),
+        overallScore: String(hiringDecision.overallScore),
+        recommendation: hiringDecision.recommendation,
+        reasoning: hiringDecision.reasoning,
+        technicalStrengths: technicalEvaluation.technicalStrengths,
+        technicalWeaknesses: technicalEvaluation.areasForImprovement,
+        communicationStrengths: communicationEvaluation.communicationStrengths,
+        communicationWeaknesses: communicationEvaluation.communicationWeaknesses,
+        nextSteps: hiringDecision.nextSteps,
+      });
+
+      console.log('[storeEvaluation] Successfully stored evaluation');
+
+      // Update interview status to indicate evaluation is complete
+      await db.update(interviews)
+        .set({ status: 'completed' })
+        .where(eq(interviews.id, interviewId));
+
+      return { success: true };
+    } catch (error) {
+      console.error('[storeEvaluation] Failed to store evaluation:', error);
+      throw error;
     }
-
-    await db.insert(evaluations).values({
-      interviewId: interview.id,
-      candidateId,
-      technicalScore: String(technicalEvaluation.technicalScore),
-      communicationScore: String(communicationEvaluation.communicationScore),
-      overallScore: String(hiringDecision.overallScore),
-      recommendation: hiringDecision.recommendation,
-      reasoning: hiringDecision.reasoning,
-      technicalStrengths: technicalEvaluation.technicalStrengths,
-      technicalWeaknesses: technicalEvaluation.areasForImprovement,
-      communicationStrengths: communicationEvaluation.communicationStrengths,
-      communicationWeaknesses: communicationEvaluation.communicationWeaknesses,
-      nextSteps: hiringDecision.nextSteps,
-    });
-
-    // Update interview status to indicate evaluation is complete
-    await db.update(interviews).set({ status: 'completed' }).where(eq(interviews.id, interview.id));
-
-    return { success: true };
   },
 });
 

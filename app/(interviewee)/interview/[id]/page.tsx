@@ -587,7 +587,7 @@ export default function Interview() {
 
     try {
       setIsSaving(true);
-      toast.info('Saving interview data...');
+      toast.info('Saving interview data and generating evaluation...');
 
       // Save any pending messages
       const currentMessages = voiceMessagesRef.current;
@@ -607,7 +607,7 @@ export default function Interview() {
         recorderRef.current = null;
       }
 
-      // Save final code state using identifier
+      // Save final code state and trigger evaluation workflow
       await fetch(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -617,6 +617,15 @@ export default function Interview() {
           status: 'completed',
         }),
       });
+
+      // Trigger evaluation workflow with identifier
+      const evalResponse = await fetch(`/api/interviews/${interview.identifier}/complete`, {
+        method: 'POST',
+      });
+
+      if (!evalResponse.ok) {
+        throw new Error('Failed to complete interview');
+      }
 
       // Upload recording if we have one
       if (recording) {
@@ -633,32 +642,6 @@ export default function Interview() {
         if (!response.ok) {
           throw new Error('Failed to upload recording');
         }
-      }
-
-      // Trigger evaluation workflow
-      const evalResponse = await fetch(`/api/interviews/${interview.id}/complete`, {
-        method: 'POST',
-      });
-
-      if (!evalResponse.ok) {
-        throw new Error('Failed to start evaluation');
-      }
-
-      // Generate evaluation report
-      toast.info('Generating evaluation report...');
-      const evaluationResponse = await fetch(`/api/interviews/${interview.identifier}/evaluate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transcript: voiceMessagesRef.current,
-          problemStatement: interview.problemDescription,
-          finalSolution: codeRef.current,
-          candidateName: interview.candidateName,
-        }),
-      });
-
-      if (!evaluationResponse.ok) {
-        throw new Error('Failed to generate evaluation report');
       }
 
       // Stop media streams
