@@ -92,6 +92,8 @@ export default function SignUp() {
                 required
               />
             </div>
+            {/* Add Clerk CAPTCHA element */}
+            <div id="clerk-captcha" />
             {error && <p className="text-sm text-red-600">{error}</p>}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
