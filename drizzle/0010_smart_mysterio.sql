@@ -1,0 +1,1 @@
+ALTER TABLE "interviews" ALTER COLUMN "problem_id" SET NOT NULL;

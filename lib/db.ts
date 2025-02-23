@@ -94,27 +94,79 @@ export async function createInterview(data: NewInterview) {
 }
 
 export async function getInterview(id: string) {
-  const [interview] = await db
-    .select({
-      id: interviews.id,
-      candidateName: candidates.name,
-      candidateEmail: candidates.email,
-      scheduledFor: interviews.scheduledFor,
-      status: interviews.status,
-      recordingUrl: interviews.recordingUrl,
-      recordingStartedAt: interviews.recordingStartedAt,
-      recordingEndedAt: interviews.recordingEndedAt,
-      duration: interviews.duration,
-      code: interviews.code,
-      language: interviews.language,
-      problemDescription: interviews.problemDescription,
-      messages: interviews.messages,
-    })
-    .from(interviews)
-    .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
-    .where(eq(interviews.id, id));
+  // First try to get by UUID
+  try {
+    const [interview] = await db
+      .select({
+        id: interviews.id,
+        identifier: interviews.identifier,
+        candidateName: candidates.name,
+        candidateEmail: candidates.email,
+        scheduledFor: interviews.scheduledFor,
+        status: interviews.status,
+        recordingUrl: interviews.recordingUrl,
+        recordingStartedAt: interviews.recordingStartedAt,
+        recordingEndedAt: interviews.recordingEndedAt,
+        duration: interviews.duration,
+        code: interviews.code,
+        language: interviews.language,
+        problemDescription: interviews.problemDescription,
+        messages: interviews.messages,
+      })
+      .from(interviews)
+      .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
+      .where(eq(interviews.id, id));
 
-  return interview;
+    if (interview) return interview;
+
+    // If not found by UUID, try identifier
+    const [interviewByIdentifier] = await db
+      .select({
+        id: interviews.id,
+        identifier: interviews.identifier,
+        candidateName: candidates.name,
+        candidateEmail: candidates.email,
+        scheduledFor: interviews.scheduledFor,
+        status: interviews.status,
+        recordingUrl: interviews.recordingUrl,
+        recordingStartedAt: interviews.recordingStartedAt,
+        recordingEndedAt: interviews.recordingEndedAt,
+        duration: interviews.duration,
+        code: interviews.code,
+        language: interviews.language,
+        problemDescription: interviews.problemDescription,
+        messages: interviews.messages,
+      })
+      .from(interviews)
+      .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
+      .where(eq(interviews.identifier, id));
+
+    return interviewByIdentifier;
+  } catch {
+    // If UUID parse fails, try identifier directly
+    const [interview] = await db
+      .select({
+        id: interviews.id,
+        identifier: interviews.identifier,
+        candidateName: candidates.name,
+        candidateEmail: candidates.email,
+        scheduledFor: interviews.scheduledFor,
+        status: interviews.status,
+        recordingUrl: interviews.recordingUrl,
+        recordingStartedAt: interviews.recordingStartedAt,
+        recordingEndedAt: interviews.recordingEndedAt,
+        duration: interviews.duration,
+        code: interviews.code,
+        language: interviews.language,
+        problemDescription: interviews.problemDescription,
+        messages: interviews.messages,
+      })
+      .from(interviews)
+      .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
+      .where(eq(interviews.identifier, id));
+
+    return interview;
+  }
 }
 
 export async function getInterviewByIdentifier(identifier: string) {
@@ -124,6 +176,7 @@ export async function getInterviewByIdentifier(identifier: string) {
       identifier: interviews.identifier,
       userId: interviews.userId,
       candidateId: interviews.candidateId,
+      problemId: interviews.problemId,
       scheduledFor: interviews.scheduledFor,
       status: interviews.status,
       metadata: interviews.metadata,
@@ -133,19 +186,27 @@ export async function getInterviewByIdentifier(identifier: string) {
       recordingEndedAt: interviews.recordingEndedAt,
       recordingUrl: interviews.recordingUrl,
       duration: interviews.duration,
+      problemDescription: interviews.problemDescription,
+      language: interviews.language,
+      code: interviews.code,
     })
     .from(interviews)
     .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
+    .leftJoin(problems, eq(interviews.problemId, problems.id))
     .where(eq(interviews.identifier, identifier));
   return interview;
 }
 
-export async function updateInterview(id: string, data: Partial<NewInterview>) {
+export async function updateInterview(id: string, data: Partial<typeof interviews.$inferInsert>) {
   const [interview] = await db
     .update(interviews)
-    .set({ ...data, updatedAt: new Date() })
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
     .where(eq(interviews.id, id))
     .returning();
+
   return interview;
 }
 

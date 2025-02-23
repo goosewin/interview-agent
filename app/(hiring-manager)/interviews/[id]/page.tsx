@@ -232,7 +232,7 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
               <CardTitle>Problem Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose-sm prose dark:prose-invert">{interview.problemDescription}</div>
+              <div className="prose prose-sm dark:prose-invert">{interview.problemDescription}</div>
             </CardContent>
           </Card>
 

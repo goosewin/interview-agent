@@ -33,9 +33,22 @@ export class InterviewRecorder {
   async startRecording() {
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { width: 1920, height: 1080, frameRate: 30 },
+        video: {
+          width: 1920,
+          height: 1080,
+          frameRate: 30,
+          displaySurface: 'monitor',
+        },
         audio: false,
       });
+
+      // Verify that we got a monitor capture
+      const videoTrack = screenStream.getVideoTracks()[0];
+      if (videoTrack.getSettings().displaySurface !== 'monitor') {
+        videoTrack.stop();
+        throw new Error('Please select a monitor/screen, not a window or browser tab');
+      }
+
       return {
         screenStream,
         proceed: async () => {

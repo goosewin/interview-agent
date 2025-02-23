@@ -73,9 +73,9 @@ export default function InterviewPage() {
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
-
   const handleEditorDidMount: OnMount = (editor) => {
-    editorRef.current = editor;
+    // Using type assertion to fix readonly error
+    (editorRef as { current: IStandaloneCodeEditor }).current = editor;
   };
 
   const handleRunCode = () => {

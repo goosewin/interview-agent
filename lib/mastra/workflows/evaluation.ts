@@ -1,0 +1,224 @@
+import { Step, Workflow, type WorkflowContext } from '@mastra/core';
+import { z } from 'zod';
+import { mastra } from '../index';
+import {
+  COMMUNICATION_EVALUATION_PROMPT,
+  CommunicationEvaluationSchema,
+  HIRING_DECISION_PROMPT,
+  HiringDecisionSchema,
+  TECHNICAL_EVALUATION_PROMPT,
+  TechnicalEvaluationSchema,
+} from '../prompts/recruiter';
+
+const recruiter = mastra.getAgent('recruiterAgent');
+
+const InterviewCompletionInputSchema = z.object({
+  interviewId: z.string(),
+});
+
+interface InterviewEvaluationContext extends WorkflowContext {
+  interviewId: string;
+  candidateId: string;
+  problemDescription: string;
+  finalSolution: string;
+  transcript: string[];
+  language: string;
+  technicalEvaluation?: z.infer<typeof TechnicalEvaluationSchema>;
+  communicationEvaluation?: z.infer<typeof CommunicationEvaluationSchema>;
+  candidateData?: {
+    name: string;
+    email: string;
+    metadata: Record<string, unknown>;
+  };
+  pastEvaluations?: unknown[];
+}
+
+interface InterviewData {
+  problemDescription: string;
+  finalSolution: string;
+  transcript: string[];
+  language: string;
+  candidateId: string;
+}
+
+interface CandidateData {
+  candidate: {
+    name: string;
+    email: string;
+    metadata: Record<string, unknown>;
+  };
+  pastEvaluations: unknown[];
+}
+
+const gatherInterviewData = new Step({
+  id: 'gatherInterviewData',
+  inputSchema: InterviewCompletionInputSchema,
+  execute: async ({ context }) => {
+    const { interviewId } = context;
+
+    // Get interview data
+    const interviewData = (await recruiter.tools.getInterviewData.execute({
+      context: {
+        interviewId,
+        steps: context.steps,
+        triggerData: context.triggerData,
+        attempts: context.attempts,
+        getStepPayload: context.getStepPayload,
+      },
+      suspend: () => Promise.resolve(),
+    })) as InterviewData;
+
+    // Get candidate data
+    const candidateData = (await recruiter.tools.getCandidateData.execute({
+      context: {
+        candidateId: interviewData.candidateId,
+        steps: context.steps,
+        triggerData: context.triggerData,
+        attempts: context.attempts,
+        getStepPayload: context.getStepPayload,
+      },
+      suspend: () => Promise.resolve(),
+    })) as CandidateData;
+
+    // Update context with gathered data
+    return {
+      ...context,
+      interviewId,
+      candidateId: interviewData.candidateId,
+      problemDescription: interviewData.problemDescription,
+      finalSolution: interviewData.finalSolution,
+      transcript: interviewData.transcript,
+      language: interviewData.language,
+      candidateData: candidateData.candidate,
+      pastEvaluations: candidateData.pastEvaluations,
+    };
+  },
+});
+
+const evaluateTechnicalSkills = new Step({
+  id: 'evaluateTechnicalSkills',
+  execute: async ({ context }) => {
+    const { problemDescription, finalSolution, language, candidateData } =
+      context as InterviewEvaluationContext;
+
+    const prompt = `${TECHNICAL_EVALUATION_PROMPT}
+      
+      Candidate Info: ${JSON.stringify(candidateData)}
+      Programming Language: ${language}
+      
+      Problem Description: ${problemDescription}
+      Candidate Solution: ${finalSolution}
+      
+      Respond with a JSON object containing:
+      - technicalScore (0-10)
+      - codeQuality (string description)
+      - problemSolving (string description)
+      - technicalStrengths (array of strings)
+      - areasForImprovement (array of strings)`;
+
+    const response = await recruiter.generate(prompt, {
+      output: TechnicalEvaluationSchema,
+    });
+
+    return {
+      ...context,
+      technicalEvaluation: response.object,
+    };
+  },
+});
+
+const evaluateCommunicationSkills = new Step({
+  id: 'evaluateCommunicationSkills',
+  execute: async ({ context }) => {
+    const { transcript, candidateData } = context as InterviewEvaluationContext;
+
+    const prompt = `${COMMUNICATION_EVALUATION_PROMPT}
+      
+      Candidate Info: ${JSON.stringify(candidateData)}
+      
+      Interview Transcript: ${JSON.stringify(transcript)}
+      
+      Respond with a JSON object containing:
+      - communicationScore (0-10)
+      - clarity (string description)
+      - collaboration (string description)
+      - communicationStrengths (array of strings)
+      - communicationWeaknesses (array of strings)`;
+
+    const response = await recruiter.generate(prompt, {
+      output: CommunicationEvaluationSchema,
+    });
+
+    return {
+      ...context,
+      communicationEvaluation: response.object,
+    };
+  },
+});
+
+const makeHiringDecision = new Step({
+  id: 'makeHiringDecision',
+  execute: async ({ context }) => {
+    const {
+      technicalEvaluation,
+      communicationEvaluation,
+      candidateData,
+      interviewId,
+      candidateId,
+    } = context as InterviewEvaluationContext;
+    if (!technicalEvaluation || !communicationEvaluation) {
+      throw new Error('Missing required evaluations');
+    }
+
+    const prompt = `${HIRING_DECISION_PROMPT}
+      
+      Candidate Info: ${JSON.stringify(candidateData)}
+      
+      Technical Evaluation: ${JSON.stringify(technicalEvaluation)}
+      Communication Evaluation: ${JSON.stringify(communicationEvaluation)}
+      
+      Respond with a JSON object containing:
+      - recommendation ('hire' | 'no_hire' | 'consider')
+      - overallScore (0-10)
+      - reasoning (string)
+      - nextSteps (array of strings)`;
+
+    const response = await recruiter.generate(prompt, {
+      output: HiringDecisionSchema,
+    });
+
+    // Store the complete evaluation
+    await recruiter.tools.storeEvaluation.execute({
+      context: {
+        interviewId,
+        candidateId,
+        technicalEvaluation,
+        communicationEvaluation,
+        hiringDecision: response.object,
+        steps: context.steps,
+        triggerData: context.triggerData,
+        attempts: context.attempts,
+        getStepPayload: context.getStepPayload,
+      },
+      suspend: () => Promise.resolve(),
+    });
+
+    return {
+      ...context,
+      hiringDecision: response.object,
+    };
+  },
+});
+
+export const interviewEvaluationWorkflow = new Workflow({
+  name: 'interview-evaluation',
+  triggerSchema: InterviewCompletionInputSchema,
+});
+
+interviewEvaluationWorkflow
+  .step(gatherInterviewData)
+  .then(evaluateTechnicalSkills)
+  .then(evaluateCommunicationSkills)
+  .then(makeHiringDecision);
+
+interviewEvaluationWorkflow.commit();

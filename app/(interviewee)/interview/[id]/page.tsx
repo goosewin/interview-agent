@@ -1,8 +1,14 @@
 'use client';
 
+import AIInterviewer from '@/components/AIInterviewer';
 import ChatView from '@/components/ChatView';
-import Image from 'next/image';
 import { Conversation } from '@/components/conversation';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,6 +30,7 @@ import type { editor } from 'monaco-editor';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import ProblemContent from './ProblemContent';
 
 type Interview = {
   id: string;
@@ -33,6 +40,7 @@ type Interview = {
   problemDescription: string;
   code?: string;
   candidateName?: string;
+  scheduledStartTime: string;
 };
 
 type DeviceInfo = {
@@ -64,6 +72,8 @@ export default function Interview() {
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
   const [timeLeft, setTimeLeft] = useState(45 * 60); // 45 minutes in seconds
+  const [reconnectDeadline, setReconnectDeadline] = useState<Date | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [output, setOutput] = useState('');
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [, setProblemContent] = useState('');
@@ -74,6 +84,7 @@ export default function Interview() {
   const [voiceMessages, setVoiceMessages] = useState<
     Array<{ message: string; source: 'ai' | 'user' }>
   >([]);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string>();
 
   // Keep code in sync with refs for immediate access
   const codeRef = useRef(code);
@@ -132,6 +143,7 @@ export default function Interview() {
       source: 'ai' | 'user';
       clear?: boolean;
       timeInCallSecs?: number;
+      audioUrl?: string;
     }) => {
       if (message.clear) {
         // Don't clear messages on disconnect/cleanup
@@ -140,6 +152,11 @@ export default function Interview() {
           voiceMessagesRef.current = [];
         }
         return;
+      }
+
+      // Update audio URL for lip syncing
+      if (message.source === 'ai' && message.audioUrl) {
+        setCurrentAudioUrl(message.audioUrl);
       }
 
       // Update state through ref to avoid re-renders
@@ -181,7 +198,7 @@ export default function Interview() {
   useEffect(() => {
     async function fetchInterview() {
       try {
-        const response = await fetch(`/api/interviews/join/${identifier}`);
+        const response = await fetch(`/api/interviews/${identifier}?join=true`);
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to fetch interview');
@@ -199,7 +216,7 @@ export default function Interview() {
         if (data.code) setCode(data.code);
         if (data.language) setLanguage(data.language);
 
-        // Update last active timestamp
+        // Update last active timestamp using identifier
         await fetch(`/api/interviews/${identifier}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -216,8 +233,9 @@ export default function Interview() {
     }
     fetchInterview();
 
-    // Set up periodic heartbeat
+    // Set up periodic heartbeat using identifier
     const heartbeatInterval = setInterval(async () => {
+      if (!interview?.id) return;
       try {
         await fetch(`/api/interviews/${identifier}`, {
           method: 'PATCH',
@@ -368,8 +386,8 @@ export default function Interview() {
         throw new Error('Failed to start recording');
       }
 
-      // Update interview status
-      await fetch(`/api/interviews/${interview.id}`, {
+      // Update interview status using identifier
+      await fetch(`/api/interviews/${identifier}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -410,6 +428,15 @@ export default function Interview() {
         }
         try {
           await result.proceed();
+          // Update interview status to in_progress
+          await fetch(`/api/interviews/${identifier}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'in_progress',
+              lastActiveAt: new Date().toISOString(),
+            }),
+          });
           setPreflightComplete(true);
           setIsInterviewStarted(true);
         } catch (error) {
@@ -578,8 +605,8 @@ export default function Interview() {
         recorderRef.current = null;
       }
 
-      // Save final code state
-      await fetch(`/api/interviews/${interview.id}`, {
+      // Save final code state using identifier
+      await fetch(`/api/interviews/${identifier}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -606,6 +633,32 @@ export default function Interview() {
         }
       }
 
+      // Trigger evaluation workflow
+      const evalResponse = await fetch(`/api/interviews/${interview.id}/complete`, {
+        method: 'POST',
+      });
+
+      if (!evalResponse.ok) {
+        throw new Error('Failed to start evaluation');
+      }
+
+      // Generate evaluation report
+      toast.info('Generating evaluation report...');
+      const evaluationResponse = await fetch(`/api/interviews/${identifier}/evaluate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript: voiceMessagesRef.current,
+          problemStatement: interview.problemDescription,
+          finalSolution: codeRef.current,
+          candidateName: interview.candidateName,
+        }),
+      });
+
+      if (!evaluationResponse.ok) {
+        throw new Error('Failed to generate evaluation report');
+      }
+
       // Stop media streams
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
@@ -623,7 +676,7 @@ export default function Interview() {
     } finally {
       setIsSaving(false);
     }
-  }, [interview, handleVoiceMessage, stream, router, language, isSaving]);
+  }, [interview, handleVoiceMessage, stream, router, language, isSaving, identifier]);
 
   // Add beforeunload handler when saving
   useEffect(() => {
@@ -638,10 +691,161 @@ export default function Interview() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isSaving]);
 
+  // Keep track of last active timestamp
+  const updateLastActive = useCallback(async () => {
+    if (!interview?.id) return;
+    try {
+      await fetch(`/api/interviews/${identifier}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lastActiveAt: new Date().toISOString(),
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to update lastActiveAt:', error);
+    }
+  }, [identifier, interview?.id]);
+
+  // Check interview timing and status
+  const checkInterviewStatus = useCallback(() => {
+    if (!interview) return null;
+
+    const now = new Date();
+    const startTime = new Date(interview.scheduledStartTime);
+    const minutesUntilStart = Math.floor((startTime.getTime() - now.getTime()) / (1000 * 60));
+    const minutesLate = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
+
+    if (interview.status === 'abandoned') {
+      return {
+        canJoin: false,
+        message: 'This interview has been abandoned due to inactivity.',
+      };
+    }
+
+    if (interview.status === 'completed') {
+      return {
+        canJoin: false,
+        message: 'This interview has been completed.',
+      };
+    }
+
+    if (interview.status === 'cancelled') {
+      return {
+        canJoin: false,
+        message: 'This interview has been cancelled.',
+      };
+    }
+
+    // Check if candidate is more than 10 minutes late
+    if (minutesLate > 10 && interview.status === 'not_started') {
+      // Mark as abandoned
+      fetch(`/api/interviews/${identifier}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'abandoned',
+          lastActiveAt: new Date().toISOString(),
+        }),
+      });
+
+      return {
+        canJoin: false,
+        message: 'This interview has been abandoned as you were more than 10 minutes late.',
+      };
+    }
+
+    if (minutesUntilStart > 5) {
+      return {
+        canJoin: false,
+        message: `This interview is scheduled to start in ${minutesUntilStart} minutes. Please return closer to the start time.`,
+      };
+    }
+
+    return {
+      canJoin: true,
+      message: null,
+    };
+  }, [interview, identifier]);
+
+  // Handle disconnection and reconnection
+  useEffect(() => {
+    let abandonTimer: NodeJS.Timeout | null = null;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden') {
+        // User left - start 5 minute timer
+        const deadline = new Date(Date.now() + 5 * 60 * 1000);
+        setReconnectDeadline(deadline);
+        setIsReconnecting(true);
+
+        // Set timer to mark as abandoned after 5 minutes
+        abandonTimer = setTimeout(
+          async () => {
+            try {
+              await fetch(`/api/interviews/${identifier}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  status: 'abandoned',
+                  lastActiveAt: new Date().toISOString(),
+                }),
+              });
+              router.refresh();
+            } catch (error) {
+              console.error('Failed to abandon interview:', error);
+            }
+          },
+          5 * 60 * 1000
+        );
+      } else {
+        // User returned
+        setIsReconnecting(false);
+        setReconnectDeadline(null);
+        if (abandonTimer) clearTimeout(abandonTimer);
+        updateLastActive();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (abandonTimer) clearTimeout(abandonTimer);
+    };
+  }, [identifier, router, updateLastActive]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p>Loading interview...</p>
+      </div>
+    );
+  }
+
+  const status = checkInterviewStatus();
+  if (!status || !status.canJoin) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <p className="text-destructive">{status?.message || 'Unable to join interview.'}</p>
+        <Button onClick={() => router.push('/')}>Return Home</Button>
+      </div>
+    );
+  }
+
+  if (isReconnecting) {
+    const timeLeft = reconnectDeadline
+      ? Math.max(0, Math.floor((reconnectDeadline.getTime() - Date.now()) / 1000))
+      : 0;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <p className="text-destructive">
+          You have {minutes}:{seconds.toString().padStart(2, '0')} minutes to reconnect before the
+          interview is marked as abandoned.
+        </p>
+        <p className="text-muted-foreground">Please return to the interview to continue.</p>
       </div>
     );
   }
@@ -890,31 +1094,25 @@ export default function Interview() {
             <div className="flex h-full flex-col gap-4 p-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* Camera View */}
-                <Card className="p-4">
-                  <div className="font-bold">{/* TODO: get candidate name */}Candidate Name</div>
-                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                    {/* candidate name */}
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+                <Card>
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-sm">{interview.candidateName}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </CardContent>
                 </Card>
 
-                <Card className="p-4">
-                  <div className="font-bold">AI Interviewer</div>
-                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                    <Image
-                      src="/interviewer.png"
-                      alt="AI Interviewer"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                </Card>
+                {/* AI Profile */}
+                <AIInterviewer audioUrl={currentAudioUrl} />
               </div>
 
               {/* Problem Description */}
@@ -923,7 +1121,7 @@ export default function Interview() {
                   <CardTitle>Problem</CardTitle>
                 </CardHeader>
                 <CardContent className="prose prose-invert max-w-none flex-1 overflow-y-auto">
-                  {/* <ProblemContent content={interview.problemDescription} /> */}
+                  {interview && <ProblemContent content={interview.problemDescription} />}
                 </CardContent>
               </Card>
 
@@ -936,9 +1134,14 @@ export default function Interview() {
                   candidateName={interview.candidateName}
                   interviewId={interview.id}
                 />
-                <div className="mt-4 h-48 overflow-y-auto">
-                  <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />
-                </div>
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="transcript">
+                    <AccordionTrigger>Transcript</AccordionTrigger>
+                    <AccordionContent>
+                      <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </Card>
             </div>
           </ResizablePanel>

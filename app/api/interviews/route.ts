@@ -1,4 +1,4 @@
-import { createInterview, getProblems, getUserInterviews } from '@/lib/db';
+import { createInterview, getProblem, getProblems, getUserInterviews } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
 import { createId } from '@paralleldrive/cuid2';
 import { NextResponse } from 'next/server';
@@ -42,15 +42,26 @@ export async function POST(req: Request) {
     // Combine date and time into a single datetime
     const scheduledFor = new Date(`${validatedData.date}T${validatedData.time}`);
 
+    // Get all problems for the user
+    const problems = await getProblems(user.id);
+    if (problems.length === 0) {
+      return NextResponse.json(
+        { error: 'No problems found. Please create at least one problem first.' },
+        { status: 400 }
+      );
+    }
+
     // If no problem is selected, get a random one of the specified difficulty
     let problemId = validatedData.problemId;
-    if (!problemId) {
-      const problems = await getProblems(user.id);
-      const matchingProblems = problems.filter((p) => p.difficulty === validatedData.difficulty);
+    let problemDescription = '';
 
+    if (!problemId) {
+      const matchingProblems = problems.filter((p) => p.difficulty === validatedData.difficulty);
       if (matchingProblems.length === 0) {
         return NextResponse.json(
-          { error: `No problems found with difficulty: ${validatedData.difficulty}` },
+          {
+            error: `No problems found with difficulty: ${validatedData.difficulty}. Please create one first.`,
+          },
           { status: 400 }
         );
       }
@@ -58,6 +69,13 @@ export async function POST(req: Request) {
       // Select a random problem
       const randomIndex = Math.floor(Math.random() * matchingProblems.length);
       problemId = matchingProblems[randomIndex].id;
+      problemDescription = matchingProblems[randomIndex].description;
+    } else {
+      const problem = await getProblem(problemId, user.id);
+      if (!problem) {
+        return NextResponse.json({ error: 'Problem not found' }, { status: 404 });
+      }
+      problemDescription = problem.description;
     }
 
     const interview = await createInterview({
@@ -67,7 +85,7 @@ export async function POST(req: Request) {
       identifier: createId(),
       scheduledFor,
       status: 'not_started',
-      problemDescription: 'To be assigned', // Will be set when interview starts
+      problemDescription,
       language: 'javascript', // Default language, can be changed later
       metadata: {
         difficulty: validatedData.difficulty,

@@ -1,4 +1,4 @@
-import { getInterview, updateInterview } from '@/lib/db';
+import { getInterview, getInterviewByIdentifier, updateInterview } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -16,7 +16,11 @@ const updateInterviewSchema = z.object({
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const interview = await getInterview(id);
+    const url = new URL(request.url);
+    const isJoin = url.searchParams.get('join') === 'true';
+
+    // Use getInterviewByIdentifier for join requests, getInterview for others
+    const interview = isJoin ? await getInterviewByIdentifier(id) : await getInterview(id);
 
     if (!interview) {
       return new Response('Interview not found', { status: 404 });
@@ -37,6 +41,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Try to get interview by either UUID or identifier
     const interview = await getInterview(id);
     if (!interview) {
       return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
@@ -54,7 +59,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       data.lastActiveAt = new Date(validatedData.lastActiveAt);
     }
 
-    const updatedInterview = await updateInterview(id, data);
+    // Use the UUID for the update
+    const updatedInterview = await updateInterview(interview.id, data);
     return NextResponse.json(updatedInterview);
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -8,6 +8,7 @@ export type Message = {
   source: 'ai' | 'user';
   clear?: boolean;
   timeInCallSecs?: number;
+  audioUrl?: string;
 };
 
 export type CodeUpdateData = {
@@ -32,6 +33,7 @@ type ConversationProps = {
   conversationRef?: React.RefObject<ReturnType<typeof useConversation>>;
   candidateName?: string;
   interviewId: string;
+  problemDescription?: string;
 };
 
 export function Conversation({
@@ -40,6 +42,7 @@ export function Conversation({
   conversationRef,
   candidateName,
   interviewId,
+  problemDescription = '',
 }: ConversationProps) {
   const isActive = useRef(false);
   const messageHandlerRef = useRef(onMessage);
@@ -50,7 +53,7 @@ export function Conversation({
 
   const handleConnect = useCallback(() => {
     if (!initRef.current) return;
-    console.log('Connected');
+    console.log('Connected to Eleven Labs');
     isActive.current = true;
     startTimeRef.current = Date.now();
     setStatus('connected');
@@ -58,7 +61,7 @@ export function Conversation({
 
   const handleDisconnect = useCallback(() => {
     if (!initRef.current) return;
-    console.log('Disconnected');
+    console.log('Disconnected from Eleven Labs');
     isActive.current = false;
     startTimeRef.current = null;
     setStatus('disconnected');
@@ -73,7 +76,10 @@ export function Conversation({
       message: string;
       source: 'ai' | 'user';
       speaking?: boolean;
+      audioUrl?: string;
     };
+
+    console.log('Received message from Eleven Labs:', typedMessage);
 
     if (typeof typedMessage.speaking === 'boolean') {
       setIsSpeaking(typedMessage.speaking);
@@ -83,16 +89,21 @@ export function Conversation({
       ? Math.floor((Date.now() - startTimeRef.current) / 1000)
       : 0;
 
+    if (typedMessage.audioUrl) {
+      console.log('Got audio URL from Eleven Labs:', typedMessage.audioUrl);
+    }
+
     messageHandlerRef.current({
       message: typedMessage.message,
       source: typedMessage.source,
       timeInCallSecs,
+      audioUrl: typedMessage.audioUrl,
     });
   }, []);
 
   const handleError = useCallback((error: Error) => {
     if (!initRef.current) return;
-    console.error('Error:', error);
+    console.error('Eleven Labs error:', error);
     isActive.current = false;
     startTimeRef.current = null;
     setStatus('error');
@@ -108,8 +119,8 @@ export function Conversation({
   const internalConversationRef = useRef(conversationInstance);
 
   useEffect(() => {
-    if (conversationRef) {
-      conversationRef.current = internalConversationRef.current;
+    if (conversationRef?.current) {
+      Object.assign(conversationRef.current, internalConversationRef.current);
     }
   }, [conversationRef]);
 
@@ -135,6 +146,7 @@ export function Conversation({
         dynamicVariables: {
           userName: candidateName || 'Candidate',
           interviewId,
+          problemDescription: problemDescription || '',
         },
       });
     } catch (error) {
@@ -143,7 +155,7 @@ export function Conversation({
       startTimeRef.current = null;
       setStatus('error');
     }
-  }, [candidateName, interviewId]);
+  }, [candidateName, interviewId, problemDescription]);
 
   const stopConversation = useCallback(async () => {
     if (!isActive.current) return;

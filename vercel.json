@@ -1,0 +1,26 @@
+{
+  "buildCommand": "bun run build",
+  "devCommand": "bun run dev",
+  "installCommand": "bun install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/interviews/*/complete/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/recording/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/check-abandoned",
+      "schedule": "*/1 * * * *"
+    }
+  ],
+  "build": {
+    "env": {
+      "PACKAGE_MANAGER": "bun"
+    }
+  }
+}

@@ -1,4 +1,13 @@
-import { boolean, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  jsonb,
+  numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const interviewStatusEnum = pgEnum('interview_status', [
   'not_started',
@@ -43,7 +52,9 @@ export const interviews = pgTable('interviews', {
   candidateId: uuid('candidate_id')
     .references(() => candidates.id)
     .notNull(),
-  problemId: uuid('problem_id').references(() => problems.id),
+  problemId: uuid('problem_id')
+    .references(() => problems.id)
+    .notNull(),
   status: interviewStatusEnum('status').notNull().default('not_started'),
   scheduledFor: timestamp('scheduled_for').notNull(),
   problemDescription: text('problem_description').notNull(),
@@ -99,4 +110,26 @@ export const codeSubmissions = pgTable('code_submissions', {
   isCorrect: boolean('is_correct'),
   feedback: text('feedback'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const evaluations = pgTable('evaluations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  interviewId: uuid('interview_id')
+    .references(() => interviews.id)
+    .notNull(),
+  candidateId: uuid('candidate_id')
+    .references(() => candidates.id)
+    .notNull(),
+  technicalScore: numeric('technical_score').notNull(),
+  communicationScore: numeric('communication_score').notNull(),
+  overallScore: numeric('overall_score').notNull(),
+  recommendation: text('recommendation').notNull(),
+  reasoning: text('reasoning').notNull(),
+  technicalStrengths: jsonb('technical_strengths').$type<string[]>().notNull(),
+  technicalWeaknesses: jsonb('technical_weaknesses').$type<string[]>().notNull(),
+  communicationStrengths: jsonb('communication_strengths').$type<string[]>().notNull(),
+  communicationWeaknesses: jsonb('communication_weaknesses').$type<string[]>().notNull(),
+  nextSteps: jsonb('next_steps').$type<string[]>().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

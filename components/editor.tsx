@@ -20,9 +20,9 @@ const Editor = memo(function Editor({
 }: MemoizedEditorProps) {
   const [localCode, setLocalCode] = useState(initialCode);
   const editorRef = useRef<IStandaloneCodeEditor>(null);
-
   const handleEditorDidMount: OnMount = (editor, monaco) => {
-    editorRef.current = editor;
+    // Using type assertion to allow assignment
+    (editorRef as { current: IStandaloneCodeEditor }).current = editor;
     if (onMount) onMount(editor, monaco);
   };
 
