@@ -100,3 +100,18 @@ export const codeSubmissions = pgTable('code_submissions', {
   feedback: text('feedback'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+export const performanceReviews = pgTable('performance_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  interviewId: uuid('interview_id')
+    .references(() => interviews.id)
+    .notNull(),
+  metrics: jsonb('metrics').$type<{
+    correctness: number;
+    efficiency: number;
+    overallScore: number;
+  }>().notNull(),
+  feedback: text('feedback').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});

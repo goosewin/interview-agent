@@ -555,11 +555,11 @@ export default function Interview() {
 
   const handleEndInterview = useCallback(async () => {
     if (!interview || isSaving) return;
-
+  
     try {
       setIsSaving(true);
       toast.info('Saving interview data...');
-
+  
       // Save any pending messages
       const currentMessages = voiceMessagesRef.current;
       if (currentMessages.length > 0) {
@@ -570,14 +570,14 @@ export default function Interview() {
           timeInCallSecs: Math.floor((Date.now() - startTimeRef.current!) / 1000),
         });
       }
-
+  
       // Stop recording first if it exists
       let recording: Blob | undefined;
       if (recorderRef.current) {
         recording = await recorderRef.current.stopRecording();
         recorderRef.current = null;
       }
-
+  
       // Save final code state
       await fetch(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
@@ -588,35 +588,58 @@ export default function Interview() {
           status: 'completed',
         }),
       });
-
+  
       // Upload recording if we have one
       if (recording) {
         const formData = new FormData();
         formData.append('recording', recording, 'recording.webm');
         formData.append('interviewId', interview.id);
         formData.append('action', 'stop');
-
+  
         const response = await fetch('/api/recording', {
           method: 'POST',
           body: formData,
         });
-
+  
         if (!response.ok) {
           throw new Error('Failed to upload recording');
         }
       }
-
+  
+      // Generate performance review
+      const interviewData = {
+        code: codeRef.current,
+        language,
+        messages: voiceMessagesRef.current.map(msg => ({
+          role: msg.source === 'ai' ? 'assistant' : 'user',
+          content: msg.message,
+          timestamp: new Date().toISOString()
+        })),
+        problemDescription: interview.problemDescription,
+      };
+  
+      // Complete interview and generate review
+      const reviewResponse = await fetch(`/api/interviews/${interview.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(interviewData)
+      });
+  
+      if (!reviewResponse.ok) {
+        throw new Error('Failed to generate review');
+      }
+  
       // Stop media streams
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
-
+  
       setIsInterviewStarted(false);
-      toast.success('Interview completed successfully!');
-
+      toast.success('Interview completed and review generated!');
+  
       // Small delay to ensure user sees success message
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      router.push('/');
+      router.push(`/interviews/${interview.id}/review`); // Changed to review page
     } catch (error) {
       console.error('Failed to end interview:', error);
       toast.error('Failed to end interview properly. Please try again.');

@@ -58,7 +58,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       data.lastActiveAt = new Date(validatedData.lastActiveAt);
     }
 
-    const updatedInterview = await updateInterview(id, data);
+    const updatedInterview = await updateInterview(interview.id, data);
     return NextResponse.json(updatedInterview);
   } catch (error) {
     if (error instanceof z.ZodError) {
