@@ -1,5 +1,8 @@
-import { getInterview, getInterviewByIdentifier, updateInterview } from '@/lib/db';
+import { db } from '@/db';
+import { interviews } from '@/db/schema';
+import { getInterview, updateInterview } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -19,14 +22,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const url = new URL(request.url);
     const isJoin = url.searchParams.get('join') === 'true';
 
-    // Use getInterviewByIdentifier for join requests, getInterview for others
-    const interview = isJoin ? await getInterviewByIdentifier(id) : await getInterview(id);
+    // Use db.query to get all relations
+    const interview = await db.query.interviews.findFirst({
+      where: isJoin ? undefined : eq(interviews.id, id),
+      with: {
+        candidate: true,
+        evaluations: true,
+      },
+    });
 
     if (!interview) {
       return new Response('Interview not found', { status: 404 });
     }
 
-    return Response.json(interview);
+    // Transform the data to match the expected format
+    const evaluation = interview.evaluations[0];
+    const transformedInterview = {
+      ...interview,
+      candidateName: interview.candidate.name,
+      candidateEmail: interview.candidate.email,
+      evaluation: evaluation ? {
+        technicalScore: evaluation.technicalScore,
+        communicationScore: evaluation.communicationScore,
+        overallScore: evaluation.overallScore,
+        recommendation: evaluation.recommendation,
+        reasoning: evaluation.reasoning,
+        technicalStrengths: evaluation.technicalStrengths,
+        technicalWeaknesses: evaluation.technicalWeaknesses,
+        communicationStrengths: evaluation.communicationStrengths,
+        communicationWeaknesses: evaluation.communicationWeaknesses,
+        nextSteps: evaluation.nextSteps,
+      } : undefined,
+    };
+
+    return Response.json(transformedInterview);
   } catch (error) {
     console.error('Error fetching interview:', error);
     return new Response('Internal server error', { status: 500 });

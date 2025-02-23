@@ -10,6 +10,7 @@ import { Editor } from '@monaco-editor/react';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
+import { EvaluationCharts } from './EvaluationCharts';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -35,6 +36,18 @@ type Interview = {
     message: string;
     time_in_call_secs: number;
   }>;
+  evaluation?: {
+    technicalScore: number;
+    communicationScore: number;
+    overallScore: number;
+    recommendation: string;
+    reasoning: string;
+    technicalStrengths: string[];
+    technicalWeaknesses: string[];
+    communicationStrengths: string[];
+    communicationWeaknesses: string[];
+    nextSteps: string[];
+  };
 };
 
 function formatDate(date: string) {
@@ -46,6 +59,27 @@ function formatDuration(duration: string | null) {
   const minutes = Math.floor(parseInt(duration) / 60);
   const seconds = parseInt(duration) % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function transformEvaluationData(evaluation: NonNullable<Interview['evaluation']>) {
+  return {
+    technicalData: [
+      { criteria: 'Overall Score', score: Math.max(1, Number(evaluation.technicalScore)) },
+      { criteria: 'Code Quality', score: Math.max(1, Number(evaluation.technicalScore) * 0.8) },
+      { criteria: 'Problem Solving', score: Math.max(1, Number(evaluation.technicalScore) * 0.9) },
+      { criteria: 'Technical Accuracy', score: Math.max(1, Number(evaluation.technicalScore) * 0.85) },
+      { criteria: 'Edge Cases', score: Math.max(1, Number(evaluation.technicalScore) * 0.7) },
+      { criteria: 'Time/Space', score: Math.max(1, Number(evaluation.technicalScore) * 0.75) },
+    ],
+    communicationData: [
+      { criteria: 'Overall Score', score: Math.max(1, Number(evaluation.communicationScore)) },
+      { criteria: 'Clarity', score: Math.max(1, Number(evaluation.communicationScore) * 0.9) },
+      { criteria: 'Requirements', score: Math.max(1, Number(evaluation.communicationScore) * 0.85) },
+      { criteria: 'Questions', score: Math.max(1, Number(evaluation.communicationScore) * 0.8) },
+      { criteria: 'Explanation', score: Math.max(1, Number(evaluation.communicationScore) * 0.75) },
+      { criteria: 'Conduct', score: Math.max(1, Number(evaluation.communicationScore) * 0.95) },
+    ],
+  };
 }
 
 export default function InterviewDetails({ params }: { params: Promise<{ id: string }> }) {
@@ -98,6 +132,9 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
     );
   }
 
+  // Transform evaluation data for charts
+  const evaluationData = interview.evaluation ? transformEvaluationData(interview.evaluation) : null;
+
   return (
     <div className="container mx-auto space-y-8 p-8">
       {/* Header */}
@@ -146,6 +183,7 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
           <TabsTrigger value="recording">Recording</TabsTrigger>
           <TabsTrigger value="transcript">Transcript</TabsTrigger>
           <TabsTrigger value="code">Code Solution</TabsTrigger>
+          {interview.evaluation && <TabsTrigger value="evaluation">Evaluation</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="recording" className="space-y-4">
@@ -194,16 +232,14 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
                     {messages.map((message, index) => (
                       <div
                         key={index}
-                        className={`flex ${
-                          message.role === 'user' ? 'justify-end' : 'justify-start'
-                        }`}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                          }`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-lg p-4 ${
-                            message.role === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted text-muted-foreground'
-                          }`}
+                          className={`max-w-[80%] rounded-lg p-4 ${message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
+                            }`}
                         >
                           <div className="mb-1 text-xs opacity-70">
                             {message.role === 'user' ? 'Candidate' : 'AI Interviewer'}
@@ -262,6 +298,31 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
             </CardContent>
           </Card>
         </TabsContent>
+
+        {interview.evaluation && evaluationData && (
+          <TabsContent value="evaluation">
+            <EvaluationCharts
+              technicalData={evaluationData.technicalData}
+              communicationData={evaluationData.communicationData}
+              technicalReasoning={interview.evaluation.reasoning}
+              communicationReasoning={interview.evaluation.reasoning}
+              technicalWeaknesses={interview.evaluation.technicalWeaknesses}
+              communicationWeaknesses={interview.evaluation.communicationWeaknesses}
+            />
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle>Next Steps</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-inside list-disc">
+                  {interview.evaluation.nextSteps.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
