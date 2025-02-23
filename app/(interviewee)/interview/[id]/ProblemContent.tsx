@@ -1,5 +1,11 @@
+'use client';
+
 import { MDXRemote } from 'next-mdx-remote/rsc';
 
-export default function ProblemContent({ content }: { content: string }) {
+interface ProblemContentProps {
+  content: string;
+}
+
+export default function ProblemContent({ content }: ProblemContentProps) {
   return <MDXRemote source={content} />;
 } 

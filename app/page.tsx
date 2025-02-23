@@ -3,7 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { SignedIn } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -26,8 +27,8 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to join interview');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to join interview');
       }
 
       const interview = await response.json();
@@ -45,43 +46,52 @@ export default function Home() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-4xl font-bold">AI Technical Interviewer</h1>
           <SignedIn>
-            <Button asChild>
-              <a href="/dashboard">Go to Dashboard</a>
-            </Button>
+            <UserButton afterSignOutUrl="/" />
           </SignedIn>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Join Interview</CardTitle>
-              <CardDescription>Enter your interview code to join.</CardDescription>
+              <CardTitle>For Hiring Managers</CardTitle>
+              <CardDescription>
+                Looking to manage jobs and interviews? Log in to access your dashboard.
+              </CardDescription>
             </CardHeader>
             <CardContent>
+              <SignedIn>
+                <Button asChild className="w-full">
+                  <Link href="/dashboard">Go to Dashboard</Link>
+                </Button>
+              </SignedIn>
+              <SignedOut>
+                <Button asChild className="w-full">
+                  <Link href="/sign-in">Login to Hiring Portal</Link>
+                </Button>
+              </SignedOut>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>For Interviewees</CardTitle>
+              <CardDescription>
+                Taking an interview? Enter your interview ID to join.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <form onSubmit={handleJoinInterview} className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Enter interview code"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    required
-                  />
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                </div>
+                <Input
+                  type="text"
+                  placeholder="Enter interview ID"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="w-full"
+                />
+                {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Joining...' : 'Join Interview'}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Try Demo</CardTitle>
-              <CardDescription>Experience an AI-powered technical interview.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" asChild>
-                <a href="/demo">Start Demo Interview</a>
-              </Button>
             </CardContent>
           </Card>
         </div>
