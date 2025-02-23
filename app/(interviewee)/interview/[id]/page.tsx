@@ -699,7 +699,6 @@ export default function Interview() {
     const now = new Date();
     const startTime = new Date(interview.scheduledStartTime);
     const minutesUntilStart = Math.floor((startTime.getTime() - now.getTime()) / (1000 * 60));
-    const minutesLate = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
 
     if (interview.status === 'abandoned') {
       return {
@@ -722,25 +721,16 @@ export default function Interview() {
       };
     }
 
-    // Check if candidate is more than 10 minutes late
-    if (minutesLate > 10 && interview.status === 'not_started') {
-      // Mark as abandoned
-      fetch(`/api/interviews/${identifier}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'abandoned',
-          lastActiveAt: new Date().toISOString(),
-        }),
-      });
-
+    // Allow joining up to 30 minutes after scheduled time
+    if (minutesUntilStart < -30) {
       return {
         canJoin: false,
-        message: 'This interview has been abandoned as you were more than 10 minutes late.',
+        message: 'This interview has expired. Please contact support to reschedule.',
       };
     }
 
-    if (minutesUntilStart > 5) {
+    // Don't allow joining more than 10 minutes before scheduled time
+    if (minutesUntilStart > 10) {
       return {
         canJoin: false,
         message: `This interview is scheduled to start in ${minutesUntilStart} minutes. Please return closer to the start time.`,
@@ -751,7 +741,7 @@ export default function Interview() {
       canJoin: true,
       message: null,
     };
-  }, [interview, identifier]);
+  }, [interview]);
 
   // Handle disconnection and reconnection
   useEffect(() => {
