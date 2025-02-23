@@ -29,6 +29,7 @@ import {
 import { MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 type Interview = {
   id: string;
@@ -62,24 +63,24 @@ export default function InterviewsPage() {
     fetchInterviews();
   }, []);
 
-  async function cancelInterview(id: string) {
-    setIsLoadingCancel(true);
+  const cancelInterview = async (id: string) => {
     try {
-      const response = await fetch(`/api/interviews/${id}/cancel`, {
-        method: 'POST',
+      const response = await fetch(`/api/interviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
       });
       if (!response.ok) throw new Error('Failed to cancel interview');
       const updatedInterviews = interviews.map((interview) =>
         interview.id === id ? { ...interview, status: 'cancelled' as const } : interview
       );
       setInterviews(updatedInterviews);
-      setShowCancelDialog(false);
+      toast.success('Interview cancelled successfully');
     } catch (error) {
-      console.error('Error cancelling interview:', error);
-    } finally {
-      setIsLoadingCancel(false);
+      console.error('Failed to cancel interview:', error);
+      toast.error('Failed to cancel interview');
     }
-  }
+  };
 
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr);

@@ -5,6 +5,7 @@ export const interviewStatusEnum = pgEnum('interview_status', [
   'in_progress',
   'completed',
   'cancelled',
+  'abandoned'
 ]);
 
 export const candidates = pgTable('candidates', {
@@ -54,6 +55,7 @@ export const interviews = pgTable('interviews', {
   duration: text('duration'),
   isScreenRecorded: boolean('is_screen_recorded').default(false),
   isAudioRecorded: boolean('is_audio_recorded').default(false),
+  lastActiveAt: timestamp('last_active_at'),
   metadata: jsonb('metadata').default({}).notNull(),
   messages: jsonb('messages')
     .$type<

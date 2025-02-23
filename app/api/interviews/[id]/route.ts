@@ -4,32 +4,31 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const updateInterviewSchema = z.object({
-  status: z.enum(['not_started', 'in_progress', 'completed', 'cancelled']).optional(),
+  status: z.enum(['not_started', 'in_progress', 'completed', 'cancelled', 'abandoned']).optional(),
   scheduledFor: z.string().optional(),
   problemDescription: z.string().optional(),
   language: z.string().optional(),
+  code: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
+  lastActiveAt: z.string().optional(),
 });
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = await params;
+    const { id } = await Promise.resolve(params);
     const interview = await getInterview(id);
 
     if (!interview) {
-      return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
+      return new Response('Interview not found', { status: 404 });
     }
 
-    // For non-public routes, verify user ownership
-    const user = await currentUser();
-    if (user && interview.userId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(interview);
+    return Response.json(interview);
   } catch (error) {
-    console.error('Failed to fetch interview:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error fetching interview:', error);
+    return new Response('Internal server error', { status: 500 });
   }
 }
 
@@ -46,18 +45,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
     }
 
-    if (interview.userId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await req.json();
     const validatedData = updateInterviewSchema.parse(body);
 
-    // Create update data without scheduledFor
-    const { scheduledFor, ...rest } = validatedData;
-
-    // Add scheduledFor as Date if provided
-    const data = scheduledFor ? { ...rest, scheduledFor: new Date(scheduledFor) } : rest;
+    // Create update data with proper date handling
+    const data: Record<string, unknown> = { ...validatedData };
+    if (validatedData.scheduledFor) {
+      data.scheduledFor = new Date(validatedData.scheduledFor);
+    }
+    if (validatedData.lastActiveAt) {
+      data.lastActiveAt = new Date(validatedData.lastActiveAt);
+    }
 
     const updatedInterview = await updateInterview(id, data);
     return NextResponse.json(updatedInterview);

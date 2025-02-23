@@ -4,8 +4,18 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Editor } from '@monaco-editor/react';
+import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
+
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+};
 
 type Interview = {
   id: string;
@@ -17,54 +27,69 @@ type Interview = {
   recordingStartedAt: string | null;
   recordingEndedAt: string | null;
   duration: string | null;
+  code: string | null;
+  language: string;
+  problemDescription: string;
+  messages: Array<{
+    role: string;
+    message: string;
+    time_in_call_secs: number;
+  }>;
 };
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleString();
+}
+
+function formatDuration(duration: string | null) {
+  if (!duration) return 'N/A';
+  const minutes = Math.floor(parseInt(duration) / 60);
+  const seconds = parseInt(duration) % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
 
 export default function InterviewDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [interview, setInterview] = useState<Interview | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchInterview() {
+    async function fetchData() {
       try {
-        const response = await fetch(`/api/interviews/${id}`);
-        if (!response.ok) throw new Error('Failed to fetch interview');
-        const data = await response.json();
-        setInterview(data);
-      } catch (error) {
-        console.error('Error fetching interview:', error);
-        setError('Failed to load interview');
+        // Fetch interview details
+        const interviewResponse = await fetch(`/api/interviews/${id}`);
+        if (!interviewResponse.ok) throw new Error('Failed to fetch interview');
+        const interviewData = await interviewResponse.json();
+        setInterview(interviewData);
+
+        // Fetch messages from interview transcript
+        if (interviewData.messages?.length > 0) {
+          const formattedMessages = interviewData.messages.map((msg: { role: string; message: string; time_in_call_secs: number }) => ({
+            role: msg.role === 'agent' ? 'assistant' : 'user',
+            content: msg.message,
+            timestamp: new Date(msg.time_in_call_secs * 1000).toISOString(),
+          }));
+          setMessages(formattedMessages);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setIsLoading(false);
       }
     }
-    fetchInterview();
+    fetchData();
   }, [id]);
 
-  function formatDuration(seconds: string | null): string {
-    if (!seconds) return 'N/A';
-    const mins = Math.floor(parseInt(seconds) / 60);
-    const secs = parseInt(seconds) % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleString();
-  }
-
   if (isLoading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <p>Loading interview details...</p>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   if (error || !interview) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
         <p className="text-destructive">{error || 'Interview not found'}</p>
         <Button onClick={() => router.push('/interviews')}>Back to Interviews</Button>
       </div>
@@ -72,76 +97,172 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container p-8 mx-auto space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Interview Details</h1>
-        <Button variant="outline" onClick={() => router.push('/interviews')}>
-          Back to Interviews
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={() => router.push('/interviews')}
+            className="mr-4"
+          >
+            ← Back
+          </Button>
+          <Avatar className="w-12 h-12">
+            <AvatarFallback>{interview.candidateName[0]}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-2xl font-bold">{interview.candidateName}</h1>
+            <p className="text-muted-foreground">{interview.candidateEmail}</p>
+          </div>
+        </div>
+        <Badge variant={interview.status === 'completed' ? 'default' : 'secondary'}>
+          {interview.status}
+        </Badge>
       </div>
 
+      {/* Interview Details */}
       <Card>
         <CardHeader>
-          <CardTitle>Candidate Information</CardTitle>
+          <CardTitle>Interview Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-lg">
-                {interview.candidateName?.[0] ?? interview.candidateEmail?.[0] ?? '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-xl font-semibold">{interview.candidateName}</h2>
-              <p className="text-muted-foreground">{interview.candidateEmail}</p>
-            </div>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div>
+            <strong>Scheduled For:</strong>
+            <p>{formatDate(interview.scheduledFor)}</p>
           </div>
-          <div className="grid gap-2">
-            <div>
-              <strong>Scheduled for:</strong> {formatDate(interview.scheduledFor)}
-            </div>
-            <div>
-              <strong>Status:</strong>{' '}
-              <Badge variant={interview.status === 'completed' ? 'default' : 'secondary'}>
-                {interview.status.replace('_', ' ')}
-              </Badge>
-            </div>
+          <div>
+            <strong>Duration:</strong>
+            <p>{formatDuration(interview.duration)}</p>
+          </div>
+          <div>
+            <strong>Status:</strong>
+            <p className="capitalize">{interview.status.replace('_', ' ')}</p>
           </div>
         </CardContent>
       </Card>
 
-      {interview.recordingUrl && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Interview Recording</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <div>
-                <strong>Started:</strong>{' '}
-                {interview.recordingStartedAt ? formatDate(interview.recordingStartedAt) : 'N/A'}
+      {/* Main Content */}
+      <Tabs defaultValue="recording" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="recording">Recording</TabsTrigger>
+          <TabsTrigger value="transcript">Transcript</TabsTrigger>
+          <TabsTrigger value="code">Code Solution</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="recording" className="space-y-4">
+          {interview.recordingUrl ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="overflow-hidden border rounded-lg">
+                  <video
+                    controls
+                    className="w-full"
+                    src={interview.recordingUrl}
+                    poster="/video-thumbnail.png"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+                <div className="grid gap-2 mt-4 text-sm text-muted-foreground">
+                  <div>
+                    <strong>Started:</strong>{' '}
+                    {interview.recordingStartedAt ? formatDate(interview.recordingStartedAt) : 'N/A'}
+                  </div>
+                  <div>
+                    <strong>Ended:</strong>{' '}
+                    {interview.recordingEndedAt ? formatDate(interview.recordingEndedAt) : 'N/A'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No recording available for this interview
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="transcript" className="space-y-4">
+          <Card>
+            <CardContent className="pt-6">
+              <ScrollArea className="h-[600px] pr-4">
+                {messages.length > 0 ? (
+                  <div className="space-y-4">
+                    {messages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                          }`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-lg p-4 ${message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
+                            }`}
+                        >
+                          <div className="mb-1 text-xs opacity-70">
+                            {message.role === 'user' ? 'Candidate' : 'AI Interviewer'}
+                          </div>
+                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          <div className="mt-1 text-xs text-right opacity-70">
+                            {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No transcript available for this interview
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="code" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Problem Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose-sm prose dark:prose-invert">
+                {interview.problemDescription}
               </div>
-              <div>
-                <strong>Ended:</strong>{' '}
-                {interview.recordingEndedAt ? formatDate(interview.recordingEndedAt) : 'N/A'}
-              </div>
-              <div>
-                <strong>Duration:</strong> {formatDuration(interview.duration)}
-              </div>
-            </div>
-            <div className="overflow-hidden rounded-lg border">
-              <video
-                controls
-                className="w-full"
-                src={interview.recordingUrl}
-                poster="/video-thumbnail.png"
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Candidate Solution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {interview.code ? (
+                <div className="border rounded-lg">
+                  <Editor
+                    height="400px"
+                    defaultLanguage={interview.language}
+                    defaultValue={interview.code}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  No code solution available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

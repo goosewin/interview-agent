@@ -17,7 +17,7 @@ import {
 import { InterviewRecorder } from '@/lib/recording';
 import { cn } from '@/lib/utils';
 import { Editor, type OnMount } from '@monaco-editor/react';
-import { Check, Play, X } from 'lucide-react';
+import { Check, Loader2, Play, X } from 'lucide-react';
 import type { editor } from 'monaco-editor';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -27,8 +27,9 @@ type Interview = {
   id: string;
   problemId: string;
   language: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'not_started' | 'in_progress' | 'completed' | 'cancelled' | 'abandoned';
   problemDescription: string;
+  code?: string;
 };
 
 type DeviceInfo = {
@@ -66,12 +67,10 @@ export default function Interview() {
   const [, setIsRunning] = useState(false);
   const [language, setLanguage] = useState('javascript');
   const [, /* isRecording */ setIsRecording] = useState(false);
-  const [voiceMessages, setVoiceMessages] = useState<
-    Array<{
-      message: string;
-      source: 'ai' | 'user';
-    }>
-  >([]);
+  const voiceMessagesRef = useRef<Array<{ message: string; source: 'ai' | 'user' }>>([]);
+  const [voiceMessages, setVoiceMessages] = useState<Array<{ message: string; source: 'ai' | 'user' }>>(
+    []
+  );
 
   // Keep code in sync
   const codeRef = useRef(code);
@@ -93,12 +92,21 @@ export default function Interview() {
   const [audioDevices, setAudioDevices] = useState<DeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
+  const [selectedPlaybackDevice, setSelectedPlaybackDevice] = useState<string>('');
+  const [playbackDevices, setPlaybackDevices] = useState<DeviceInfo[]>([]);
 
   const recorderRef = useRef<InterviewRecorder | null>(null);
-
+  const startTimeRef = useRef<number | null>(null);
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
 
   const interviewIdRef = useRef<string | null>(null);
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Add state for audio destination
+  const [audioDestination, setAudioDestination] = useState<AudioNode | null>(null);
+
+  const [isStarting, setIsStarting] = useState(false);
 
   useEffect(() => {
     if (interview?.id) {
@@ -115,16 +123,25 @@ export default function Interview() {
         }
         const data = await response.json();
 
-        // Redirect if interview is not active
-        if (data.status === 'cancelled' || data.status === 'completed') {
+        // Redirect if interview is cancelled or abandoned
+        if (data.status === 'cancelled' || data.status === 'abandoned') {
           router.push('/?error=Interview is no longer active');
           return;
         }
 
         setInterview(data);
         setProblemContent(data.problemDescription);
-
+        if (data.code) setCode(data.code);
         if (data.language) setLanguage(data.language);
+
+        // Update last active timestamp
+        await fetch(`/api/interviews/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lastActiveAt: new Date().toISOString(),
+          }),
+        });
       } catch (error) {
         console.error('Error fetching interview:', error);
         setError('Failed to load interview');
@@ -133,7 +150,46 @@ export default function Interview() {
       }
     }
     fetchInterview();
+
+    // Set up periodic heartbeat
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await fetch(`/api/interviews/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lastActiveAt: new Date().toISOString(),
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to update lastActiveAt:', error);
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(heartbeatInterval);
   }, [id, router]);
+
+  // Save code changes periodically
+  useEffect(() => {
+    if (!interview?.id) return;
+
+    const saveInterval = setInterval(async () => {
+      try {
+        await fetch(`/api/interviews/${interview.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: codeRef.current,
+            language,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to save code:', error);
+      }
+    }, 10000); // Every 10 seconds
+
+    return () => clearInterval(saveInterval);
+  }, [interview?.id, language]);
 
   // Cleanup media streams on unmount
   useEffect(() => {
@@ -159,9 +215,16 @@ export default function Interview() {
           deviceId: device.deviceId,
           label: device.label || `Microphone ${device.deviceId.slice(0, 5)}...`,
         }));
+      const audioOutputs = devices
+        .filter((device) => device.kind === 'audiooutput')
+        .map((device) => ({
+          deviceId: device.deviceId,
+          label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`,
+        }));
 
       setVideoDevices(videoInputs);
       setAudioDevices(audioInputs);
+      setPlaybackDevices(audioOutputs);
     } catch (error) {
       console.error('Error getting devices:', error);
       toast.error('Failed to get available devices');
@@ -222,13 +285,98 @@ export default function Interview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVideoDevice, selectedAudioDevice]);
 
+  const startRecording = useCallback(async () => {
+    if (!interview) return;
+
+    try {
+      setIsRecording(true);
+      setIsRunning(true);
+      startTimeRef.current = Date.now();
+      // Clear previous messages when starting new session
+      setVoiceMessages([]);
+
+      // Start screen recording
+      recorderRef.current = new InterviewRecorder({
+        onError: (error) => {
+          console.error('Recording error:', error);
+          setIsRecording(false);
+          setIsRunning(false);
+        },
+        onAudioNode: (audioNode) => {
+          // Store audio node in state for Conversation component
+          setAudioDestination(audioNode);
+        },
+      });
+
+      const result = await recorderRef.current.startRecording();
+      if (!result) throw new Error('Failed to start recording');
+
+      // Notify backend that recording has started
+      const response = await fetch('/api/recording', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          interviewId: interview.id,
+          action: 'start'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start recording');
+      }
+
+      // Update interview status
+      await fetch(`/api/interviews/${interview.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'in_progress',
+        }),
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      setIsRecording(false);
+      setIsRunning(false);
+      toast.error('Failed to start recording. Please try refreshing the page.');
+      throw error;
+    }
+  }, [interview]);
+
   function handleStartInterview() {
-    if (!cameraPermission || !micPermission || !consentGiven || !dataConsent) {
+    if (!cameraPermission || !micPermission || !consentGiven || !dataConsent || !selectedPlaybackDevice) {
       toast.error('Please complete all checks and provide consent');
       return;
     }
-    setPreflightComplete(true);
-    setIsInterviewStarted(true);
+
+    setIsStarting(true);
+    toast.info('Please select the screen you want to share...');
+
+    // Start recording first
+    startRecording()
+      .then(async (result) => {
+        if (!result) {
+          throw new Error('Failed to start recording');
+        }
+        try {
+          await result.proceed();
+          setPreflightComplete(true);
+          setIsInterviewStarted(true);
+        } catch (error) {
+          console.error('Failed to start recording:', error);
+          result.screenStream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+          toast.error('Failed to start screen recording. Please try again.');
+        } finally {
+          setIsStarting(false);
+        }
+      })
+      .catch((error) => {
+        // This catches screen share permission denial
+        console.error('Failed to get screen share:', error);
+        toast.error('Please grant screen share permission to continue');
+        setIsStarting(false);
+      });
   }
 
   const formatTime = (seconds: number) => {
@@ -276,14 +424,26 @@ export default function Interview() {
     }
   }, [preflightComplete, timeLeft]);
 
+  // Update the ref whenever state changes
+  useEffect(() => {
+    voiceMessagesRef.current = voiceMessages;
+  }, [voiceMessages]);
+
   const handleVoiceMessage = useCallback(
-    async (message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => {
+    async (message: { message: string; source: 'ai' | 'user'; clear?: boolean; timeInCallSecs?: number }) => {
       if (message.clear) {
-        setVoiceMessages([]);
+        // Don't clear messages on disconnect/cleanup
+        if (!message.source) {
+          setVoiceMessages([]);
+          voiceMessagesRef.current = [];
+        }
         return;
       }
 
-      setVoiceMessages((prev) => [...prev, { message: message.message, source: message.source }]);
+      // Update state through ref to avoid re-renders
+      const newMessages = [...voiceMessagesRef.current, { message: message.message, source: message.source }];
+      voiceMessagesRef.current = newMessages;
+      setVoiceMessages(newMessages);
 
       // Persist message to database
       const currentInterviewId = interviewIdRef.current;
@@ -296,6 +456,7 @@ export default function Interview() {
               interviewId: currentInterviewId,
               role: message.source === 'ai' ? 'assistant' : 'user',
               content: message.message,
+              timeInCallSecs: message.timeInCallSecs,
             }),
           });
         } catch (error) {
@@ -303,42 +464,8 @@ export default function Interview() {
         }
       }
     },
-    [] // No dependencies needed
+    [] // No dependencies needed since we use refs
   );
-
-  const startRecording = useCallback(async () => {
-    if (!interview) return;
-
-    try {
-      setIsRecording(true);
-      setIsRunning(true);
-      // Clear previous messages when starting new session
-      setVoiceMessages([]);
-
-      // Start screen recording
-      recorderRef.current = new InterviewRecorder({
-        onError: (error) => {
-          console.error('Recording error:', error);
-          setIsRecording(false);
-          setIsRunning(false);
-        },
-      });
-      await recorderRef.current.startRecording();
-
-      // Update interview status
-      await fetch(`/api/interviews/${interview.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'in_progress',
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-      setIsRecording(false);
-      setIsRunning(false);
-    }
-  }, [interview]);
 
   const stopRecording = useCallback(async () => {
     if (!interview || !recorderRef.current) return;
@@ -347,7 +474,7 @@ export default function Interview() {
       setIsRecording(false);
       setIsRunning(false);
 
-      // Stop screen recording
+      // Stop screen recording and wait for upload
       const recording = await recorderRef.current.stopRecording();
       recorderRef.current = null;
 
@@ -357,38 +484,150 @@ export default function Interview() {
       formData.append('interviewId', interview.id);
       formData.append('action', 'stop');
 
-      await fetch('/api/recording', {
+      const response = await fetch('/api/recording', {
         method: 'POST',
         body: formData,
       });
 
-      // Use the code from the ref instead of the state value
+      if (!response.ok) {
+        throw new Error('Failed to upload recording');
+      }
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+      toast.error('Failed to save recording. Please try ending the interview again.');
+    }
+  }, [interview]);
+
+  // Update the useEffect to not start recording again
+  useEffect(() => {
+    if (isInterviewStarted && interview) {
+      // No need to start recording here anymore since we do it in preflight
+      return;
+    }
+
+    // Create a cleanup function that returns a Promise
+    const cleanup = async () => {
+      if (isInterviewStarted) {
+        try {
+          // Add a small delay to ensure recording data is available
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Save any pending messages before stopping
+          const currentMessages = voiceMessagesRef.current;
+          if (currentMessages.length > 0) {
+            const lastMessage = currentMessages[currentMessages.length - 1];
+            await handleVoiceMessage({
+              message: lastMessage.message,
+              source: lastMessage.source,
+              timeInCallSecs: Math.floor((Date.now() - startTimeRef.current!) / 1000),
+            });
+          }
+
+          await stopRecording();
+        } catch (error) {
+          console.error('Failed to stop recording:', error);
+        }
+      }
+    };
+
+    // Use beforeunload to handle page closes
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      cleanup();
+      // Show a confirmation dialog
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Run cleanup
+      cleanup();
+    };
+  }, [isInterviewStarted, interview, stopRecording, handleVoiceMessage]);
+
+  const handleEndInterview = useCallback(async () => {
+    if (!interview) return;
+
+    try {
+      setIsSaving(true);
+      toast.info('Saving interview data...');
+
+      // Save any pending messages
+      const currentMessages = voiceMessagesRef.current;
+      if (currentMessages.length > 0) {
+        const lastMessage = currentMessages[currentMessages.length - 1];
+        await handleVoiceMessage({
+          message: lastMessage.message,
+          source: lastMessage.source,
+          timeInCallSecs: Math.floor((Date.now() - startTimeRef.current!) / 1000),
+        });
+      }
+
+      // Save final code state
       await fetch(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'completed',
           code: codeRef.current,
+          language,
+          status: 'completed',
         }),
       });
 
-      setVoiceMessages([]);
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-    }
-  }, [interview]);
+      // Stop recording and wait for upload to complete
+      if (recorderRef.current) {
+        const recording = await recorderRef.current.stopRecording();
+        recorderRef.current = null;
 
-  // Consolidated effect for starting/stopping interview
-  useEffect(() => {
-    if (isInterviewStarted && interview) {
-      startRecording();
+        // Upload recording
+        const formData = new FormData();
+        formData.append('recording', recording, 'recording.webm');
+        formData.append('interviewId', interview.id);
+        formData.append('action', 'stop');
+
+        const response = await fetch('/api/recording', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload recording');
+        }
+      }
+
+      // Stop media streams
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      setIsInterviewStarted(false);
+      toast.success('Interview completed successfully!');
+
+      // Small delay to ensure user sees success message
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsSaving(false);
+      router.push('/');
+    } catch (error) {
+      console.error('Failed to end interview:', error);
+      toast.error('Failed to end interview properly. Please try again.');
+      setIsSaving(false);
     }
-    return () => {
-      if (isInterviewStarted) {
-        stopRecording();
+  }, [interview, handleVoiceMessage, stream, router, language]);
+
+  // Add beforeunload handler when saving
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isSaving) {
+        e.preventDefault();
+        e.returnValue = '';
       }
     };
-  }, [isInterviewStarted, interview, startRecording, stopRecording]);
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSaving]);
 
   if (isLoading) {
     return (
@@ -425,8 +664,44 @@ export default function Interview() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-8">
-              {/* Microphone Status */}
+              {/* Audio Playback Device */}
               <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">Audio Playback</h2>
+                    <span className="flex h-5 w-5 items-center justify-center">
+                      {selectedPlaybackDevice ? (
+                        <Check className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <X className="h-5 w-5 text-destructive" />
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Select where you want to hear the AI interviewer&apos;s voice.
+                  </p>
+                  <Select value={selectedPlaybackDevice} onValueChange={setSelectedPlaybackDevice}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose audio output" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {playbackDevices.map((device) => (
+                        <SelectItem key={device.deviceId} value={device.deviceId}>
+                          {device.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Microphone Status */}
+              <div className={cn(
+                'space-y-4',
+                !selectedPlaybackDevice && 'pointer-events-none opacity-50'
+              )}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Microphone</h2>
@@ -457,12 +732,10 @@ export default function Interview() {
               </div>
 
               {/* Camera Status */}
-              <div
-                className={cn(
-                  'space-y-4',
-                  !selectedAudioDevice && 'pointer-events-none opacity-50'
-                )}
-              >
+              <div className={cn(
+                'space-y-4',
+                (!selectedAudioDevice || !selectedPlaybackDevice) && 'pointer-events-none opacity-50'
+              )}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Camera</h2>
@@ -512,7 +785,10 @@ export default function Interview() {
             </div>
 
             {/* Consent Checkboxes */}
-            <div className="space-y-4">
+            <div className={cn(
+              'space-y-4',
+              (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) && 'pointer-events-none opacity-50'
+            )}>
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="consent"
@@ -548,9 +824,23 @@ export default function Interview() {
               onClick={handleStartInterview}
               size="lg"
               className="w-full"
-              disabled={!cameraPermission || !micPermission || !consentGiven || !dataConsent}
+              disabled={
+                !cameraPermission ||
+                !micPermission ||
+                !consentGiven ||
+                !dataConsent ||
+                !selectedPlaybackDevice ||
+                isStarting
+              }
             >
-              Start Interview
+              {isStarting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Starting Interview...
+                </>
+              ) : (
+                'Start Interview'
+              )}
             </Button>
           </CardFooter>
         </Card>
@@ -559,115 +849,148 @@ export default function Interview() {
   }
 
   return (
-    <div className="h-screen bg-background">
-      <ResizablePanelGroup direction="horizontal" className="min-h-screen rounded-lg">
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-          <div className="flex h-full flex-col gap-4 p-4">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Camera View */}
-              <Card className="p-4">
-                <div className="font-bold">{/* TODO: get candidate name */}Candidate Name</div>
-                <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                  {/* candidate name */}
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              </Card>
-
-              <Card className="p-4">
-                <div className="font-bold">AI Interviewer</div>
-                <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                  {/* AI interviewer video feed */}
-                </div>
-              </Card>
-            </div>
-
-            {/* Problem Description */}
-            <Card className="flex flex-1 flex-col overflow-hidden">
-              <CardHeader>
-                <CardTitle>Problem</CardTitle>
-              </CardHeader>
-              <CardContent className="prose prose-invert max-w-none flex-1 overflow-y-auto">
-                {/* <ProblemContent content={interview.problemDescription} /> */}
-              </CardContent>
-            </Card>
-
-            {/* Voice Chat */}
-            <Card className="p-4">
-              <Conversation onMessage={handleVoiceMessage} autoStart={isInterviewStarted} />
-              <div className="mt-4 h-48 overflow-y-auto">
-                <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />
+    <>
+      {isSaving && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="rounded-lg bg-card p-8 shadow-lg">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">Saving Interview Data</h3>
+                <p className="text-muted-foreground">
+                  Please wait while we save your interview recording and transcript.
+                  <br />
+                  Do not close this window.
+                </p>
               </div>
-            </Card>
+            </div>
           </div>
-        </ResizablePanel>
+        </div>
+      )}
+      <div className="h-screen bg-background">
+        <ResizablePanelGroup direction="horizontal" className="min-h-screen rounded-lg">
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+            <div className="flex h-full flex-col gap-4 p-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Camera View */}
+                <Card className="p-4">
+                  <div className="font-bold">{/* TODO: get candidate name */}Candidate Name</div>
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                    {/* candidate name */}
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </Card>
 
-        <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={75}>
-          <div className="flex h-full flex-col p-4">
-            {/* Language Selector */}
-            <div className="mb-4 flex flex-row">
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Language" />
-                </SelectTrigger>
-                <SelectContent>
-                  {languages.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="ml-auto self-center text-xl font-bold text-primary">
-                {formatTime(timeLeft)}
+                <Card className="p-4">
+                  <div className="font-bold">AI Interviewer</div>
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                    {/* AI interviewer video feed */}
+                  </div>
+                </Card>
               </div>
-            </div>
 
-            <ResizablePanelGroup direction="vertical" className="flex-1 rounded-lg border">
-              <ResizablePanel defaultSize={70}>
-                <div className="h-full bg-zinc-950 p-4">
-                  <Editor
-                    height="100%"
-                    defaultLanguage={language}
-                    value={code}
-                    onChange={(value) => setCode(value || '')}
-                    theme="vs-dark"
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      automaticLayout: true,
-                    }}
-                    onMount={handleEditorDidMount}
-                  />
+              {/* Problem Description */}
+              <Card className="flex flex-1 flex-col overflow-hidden">
+                <CardHeader>
+                  <CardTitle>Problem</CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-invert max-w-none flex-1 overflow-y-auto">
+                  {/* <ProblemContent content={interview.problemDescription} /> */}
+                </CardContent>
+              </Card>
+
+              {/* Voice Chat */}
+              <Card className="p-4">
+                <Conversation
+                  onMessage={handleVoiceMessage}
+                  autoStart={isInterviewStarted}
+                  audioDestination={audioDestination}
+                />
+                <div className="mt-4 h-48 overflow-y-auto">
+                  <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />
                 </div>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={30}>
-                <div className="relative h-full bg-black p-4">
+              </Card>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          <ResizablePanel defaultSize={75}>
+            <div className="flex h-full flex-col p-4">
+              {/* Language Selector */}
+              <div className="mb-4 flex flex-row items-center">
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languages.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="ml-auto flex items-center gap-4">
+                  <div className="text-xl font-bold text-primary">
+                    {formatTime(timeLeft)}
+                  </div>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="absolute right-2 top-2 bg-green-600 text-white hover:bg-green-700"
-                    onClick={handleRunCode}
+                    variant="destructive"
+                    size="lg"
+                    onClick={handleEndInterview}
+                    className="font-semibold"
                   >
-                    <Play className="mr-2 h-4 w-4" /> Run
+                    End Interview
                   </Button>
-                  <pre className="mt-8 h-[calc(100%-3rem)] overflow-auto font-mono text-white">
-                    {output}
-                  </pre>
                 </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </div>
+              </div>
+
+              <ResizablePanelGroup direction="vertical" className="flex-1 rounded-lg border">
+                <ResizablePanel defaultSize={70}>
+                  <div className="h-full bg-zinc-950 p-4">
+                    <Editor
+                      height="100%"
+                      defaultLanguage={language}
+                      value={code}
+                      onChange={(value) => setCode(value || '')}
+                      theme="vs-dark"
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        automaticLayout: true,
+                      }}
+                      onMount={handleEditorDidMount}
+                    />
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={30}>
+                  <div className="relative h-full bg-black p-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute right-2 top-2 bg-green-600 text-white hover:bg-green-700"
+                      onClick={handleRunCode}
+                    >
+                      <Play className="mr-2 h-4 w-4" /> Run
+                    </Button>
+                    <pre className="mt-8 h-[calc(100%-3rem)] overflow-auto font-mono text-white">
+                      {output}
+                    </pre>
+                  </div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+    </>
   );
 }

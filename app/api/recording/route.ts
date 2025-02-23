@@ -20,6 +20,11 @@ export async function POST(req: Request) {
       file = formData.get('recording') as File;
       interviewId = formData.get('interviewId') as string;
       action = formData.get('action') as 'start' | 'stop';
+
+      // Validate file type
+      if (file && !file.type.startsWith('video/')) {
+        return NextResponse.json({ error: 'Invalid file type. Expected video file' }, { status: 400 });
+      }
     } else {
       return NextResponse.json(
         { error: 'Invalid content type. Expected JSON or form data' },
@@ -32,8 +37,8 @@ export async function POST(req: Request) {
     }
 
     if (action === 'start') {
-      await startRecording(interviewId);
-      return NextResponse.json({ success: true });
+      const interview = await startRecording(interviewId);
+      return NextResponse.json({ success: true, interview });
     }
 
     if (!file) {
@@ -43,16 +48,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const blob = await put(`interviews/${interviewId}/recording.webm`, file, {
+    // Upload to Vercel Blob with a unique path
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const blob = await put(`interviews/${interviewId}/${timestamp}-recording.webm`, file, {
       access: 'public',
-      addRandomSuffix: false,
+      addRandomSuffix: true,
+      contentType: 'video/webm',
     });
 
-    await stopRecording(interviewId, blob.url);
-
-    return NextResponse.json(blob);
+    const interview = await stopRecording(interviewId, blob.url);
+    return NextResponse.json({ ...blob, interview });
   } catch (error) {
     console.error('Failed to handle recording:', error);
-    return NextResponse.json({ error: 'Failed to handle recording' }, { status: 500 });
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Failed to handle recording'
+    }, { status: 500 });
   }
 }

@@ -97,22 +97,23 @@ export async function getInterview(id: string) {
   const [interview] = await db
     .select({
       id: interviews.id,
-      identifier: interviews.identifier,
-      userId: interviews.userId,
-      candidateId: interviews.candidateId,
-      scheduledFor: interviews.scheduledFor,
-      status: interviews.status,
-      metadata: interviews.metadata,
       candidateName: candidates.name,
       candidateEmail: candidates.email,
+      scheduledFor: interviews.scheduledFor,
+      status: interviews.status,
+      recordingUrl: interviews.recordingUrl,
       recordingStartedAt: interviews.recordingStartedAt,
       recordingEndedAt: interviews.recordingEndedAt,
-      recordingUrl: interviews.recordingUrl,
       duration: interviews.duration,
+      code: interviews.code,
+      language: interviews.language,
+      problemDescription: interviews.problemDescription,
+      messages: interviews.messages
     })
     .from(interviews)
     .leftJoin(candidates, eq(interviews.candidateId, candidates.id))
     .where(eq(interviews.id, id));
+
   return interview;
 }
 
@@ -242,4 +243,58 @@ export async function deleteProblem(id: string, userId: string) {
     .where(and(eq(problems.id, id), eq(problems.userId, userId)))
     .returning();
   return problem;
+}
+
+export async function getMessages(interviewId: string) {
+  const [interview] = await db
+    .select({
+      messages: interviews.messages,
+    })
+    .from(interviews)
+    .where(eq(interviews.id, interviewId));
+
+  if (!interview) {
+    throw new Error('Interview not found');
+  }
+
+  return (interview.messages || []).map((msg) => ({
+    role: msg.role === 'agent' ? 'assistant' : 'user',
+    content: msg.message,
+    timestamp: new Date(msg.time_in_call_secs * 1000).toISOString(),
+  }));
+}
+
+export async function updateInterviewTranscript(
+  interviewId: string,
+  message: {
+    role: 'user' | 'agent';
+    message: string;
+    time_in_call_secs: number;
+  }
+) {
+  const [interview] = await db
+    .select({
+      transcript: interviews.transcript,
+      messages: interviews.messages,
+    })
+    .from(interviews)
+    .where(eq(interviews.id, interviewId));
+
+  if (!interview) {
+    throw new Error('Interview not found');
+  }
+
+  const transcript = [...(interview.transcript || []), message];
+  const messages = [...(interview.messages || []), message];
+
+  await db
+    .update(interviews)
+    .set({
+      transcript,
+      messages,
+      updatedAt: new Date(),
+    })
+    .where(eq(interviews.id, interviewId));
+
+  return { transcript, messages };
 }
