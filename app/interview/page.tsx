@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -92,7 +94,7 @@ export default function InterviewPage() {
     <div className="h-screen bg-background">
       <ResizablePanelGroup direction="horizontal" className="min-h-screen rounded-lg">
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-          <div className="flex h-full flex-col gap-4 p-4">
+          <div className="flex flex-col h-full gap-4 p-4">
             <div className="grid grid-cols-2 gap-4">
               {/* Camera View */}
               <Card>
@@ -100,13 +102,13 @@ export default function InterviewPage() {
                   <CardTitle className="text-sm">Candidate</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                  <div className="relative overflow-hidden bg-black rounded-lg aspect-square">
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
                       muted
-                      className="h-full w-full object-cover"
+                      className="object-cover w-full h-full"
                     />
                   </div>
                 </CardContent>
@@ -118,7 +120,7 @@ export default function InterviewPage() {
                   <CardTitle className="text-sm">AI Interviewer</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <div className="relative aspect-square overflow-hidden rounded-lg">
+                  <div className="relative overflow-hidden rounded-lg aspect-square">
                     <Image src="" alt="AI Interviewer" fill className="object-cover" />
                   </div>
                 </CardContent>
@@ -134,7 +136,7 @@ export default function InterviewPage() {
             </Card>
 
             {/* Problem Description */}
-            <Card className="flex flex-1 flex-col overflow-hidden">
+            <Card className="flex flex-col flex-1 overflow-hidden">
               <CardHeader>
                 <CardTitle>Problem: Array Sum</CardTitle>
               </CardHeader>
@@ -172,7 +174,7 @@ export default function InterviewPage() {
         <ResizableHandle withHandle />
 
         <ResizablePanel defaultSize={75}>
-          <div className="flex h-full flex-col p-4">
+          <div className="flex flex-col h-full p-4">
             {/* Language Selector */}
             <div className="mb-4">
               <Select value={language} onValueChange={setLanguage}>
@@ -189,9 +191,9 @@ export default function InterviewPage() {
               </Select>
             </div>
 
-            <ResizablePanelGroup direction="vertical" className="flex-1 rounded-lg border">
+            <ResizablePanelGroup direction="vertical" className="flex-1 border rounded-lg">
               <ResizablePanel defaultSize={70}>
-                <div className="h-full bg-zinc-950 p-4">
+                <div className="h-full p-4 bg-zinc-950">
                   <Editor
                     height="100%"
                     defaultLanguage="javascript"
@@ -210,14 +212,14 @@ export default function InterviewPage() {
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={30}>
-                <div className="relative h-full bg-black p-4">
+                <div className="relative h-full p-4 bg-black">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="absolute right-2 top-2 bg-green-600 text-white hover:bg-green-700"
+                    className="absolute text-white bg-green-600 right-2 top-2 hover:bg-green-700"
                     onClick={handleRunCode}
                   >
-                    <Play className="mr-2 h-4 w-4" /> Run
+                    <Play className="w-4 h-4 mr-2" /> Run
                   </Button>
                   <pre className="mt-8 h-[calc(100%-3rem)] overflow-auto font-mono text-white">
                     {output}

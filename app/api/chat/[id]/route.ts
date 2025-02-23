@@ -3,12 +3,13 @@ import { interviews } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const interview = await db
       .select()
       .from(interviews)
-      .where(eq(interviews.id, params.id))
+      .where(eq(interviews.id, id))
       .limit(1);
 
     if (!interview.length) {
@@ -22,13 +23,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const updatedInterview = await db
       .update(interviews)
       .set(body)
-      .where(eq(interviews.id, params.id))
+      .where(eq(interviews.id, id))
       .returning();
 
     if (!updatedInterview.length) {

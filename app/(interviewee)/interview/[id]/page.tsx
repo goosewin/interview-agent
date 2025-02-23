@@ -198,10 +198,12 @@ export default function Interview() {
 
   useEffect(() => {
     checkDevices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     startMediaStream();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVideoDevice, selectedAudioDevice]);
 
   function handleStartInterview() {
@@ -349,11 +351,12 @@ export default function Interview() {
     return () => {
       stopRecording();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <p>Loading interview...</p>
       </div>
     );
@@ -361,7 +364,7 @@ export default function Interview() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <p className="text-destructive">{error}</p>
         <Button onClick={() => router.push('/')}>Return Home</Button>
       </div>
@@ -370,7 +373,7 @@ export default function Interview() {
 
   if (!interview) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <p>Interview not found</p>
         <Button onClick={() => router.push('/')}>Return Home</Button>
       </div>
@@ -379,10 +382,10 @@ export default function Interview() {
 
   if (!preflightComplete) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted p-4">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-background to-muted">
         <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle className="text-center text-2xl font-semibold">System Check</CardTitle>
+            <CardTitle className="text-2xl font-semibold text-center">System Check</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-8">
@@ -391,11 +394,11 @@ export default function Interview() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Microphone</h2>
-                    <span className="flex h-5 w-5 items-center justify-center">
+                    <span className="flex items-center justify-center w-5 h-5">
                       {selectedAudioDevice ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                        <Check className="w-5 h-5 text-green-500" />
                       ) : (
-                        <X className="h-5 w-5 text-destructive" />
+                        <X className="w-5 h-5 text-destructive" />
                       )}
                     </span>
                   </div>
@@ -427,11 +430,11 @@ export default function Interview() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Camera</h2>
-                    <span className="flex h-5 w-5 items-center justify-center">
+                    <span className="flex items-center justify-center w-5 h-5">
                       {selectedVideoDevice ? (
-                        <Check className="h-5 w-5 text-green-500" />
+                        <Check className="w-5 h-5 text-green-500" />
                       ) : (
-                        <X className="h-5 w-5 text-destructive" />
+                        <X className="w-5 h-5 text-destructive" />
                       )}
                     </span>
                   </div>
@@ -451,13 +454,13 @@ export default function Interview() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+                <div className="relative overflow-hidden rounded-lg aspect-video bg-muted">
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="h-full w-full object-cover"
+                    className="object-cover w-full h-full"
                   />
                   {!selectedVideoDevice && (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
@@ -523,37 +526,37 @@ export default function Interview() {
     <div className="h-screen bg-background">
       <ResizablePanelGroup direction="horizontal" className="min-h-screen rounded-lg">
         <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-          <div className="flex h-full flex-col gap-4 p-4">
+          <div className="flex flex-col h-full gap-4 p-4">
             <div className="grid grid-cols-2 gap-4">
               {/* Camera View */}
               <Card className="p-4">
                 <div className="font-bold">{/* TODO: get candidate name */}Candidate Name</div>
-                <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                <div className="relative overflow-hidden bg-black rounded-lg aspect-square">
                   {/* candidate name */}
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="h-full w-full object-cover"
+                    className="object-cover w-full h-full"
                   />
                 </div>
               </Card>
 
               <Card className="p-4">
                 <div className="font-bold">AI Interviewer</div>
-                <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                <div className="relative overflow-hidden bg-black rounded-lg aspect-square">
                   {/* AI interviewer video feed */}
                 </div>
               </Card>
             </div>
 
             {/* Problem Description */}
-            <Card className="flex flex-1 flex-col overflow-hidden">
+            <Card className="flex flex-col flex-1 overflow-hidden">
               <CardHeader>
                 <CardTitle>Problem</CardTitle>
               </CardHeader>
-              <CardContent className="prose prose-invert max-w-none flex-1 overflow-y-auto">
+              <CardContent className="flex-1 overflow-y-auto prose prose-invert max-w-none">
                 {/* <ProblemContent content={interview.problemDescription} /> */}
               </CardContent>
             </Card>
@@ -561,7 +564,7 @@ export default function Interview() {
             {/* Voice Chat */}
             <Card className="p-4">
               <Conversation onMessage={handleVoiceMessage} />
-              <div className="mt-4 h-48 overflow-y-auto">
+              <div className="h-48 mt-4 overflow-y-auto">
                 <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />
               </div>
             </Card>
@@ -571,9 +574,9 @@ export default function Interview() {
         <ResizableHandle withHandle />
 
         <ResizablePanel defaultSize={75}>
-          <div className="flex h-full flex-col p-4">
+          <div className="flex flex-col h-full p-4">
             {/* Language Selector */}
-            <div className="mb-4 flex flex-row">
+            <div className="flex flex-row mb-4">
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select Language" />
@@ -586,14 +589,14 @@ export default function Interview() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="ml-auto self-center text-xl font-bold text-primary">
+              <div className="self-center ml-auto text-xl font-bold text-primary">
                 {formatTime(timeLeft)}
               </div>
             </div>
 
-            <ResizablePanelGroup direction="vertical" className="flex-1 rounded-lg border">
+            <ResizablePanelGroup direction="vertical" className="flex-1 border rounded-lg">
               <ResizablePanel defaultSize={70}>
-                <div className="h-full bg-zinc-950 p-4">
+                <div className="h-full p-4 bg-zinc-950">
                   <Editor
                     height="100%"
                     defaultLanguage={language}
@@ -611,14 +614,14 @@ export default function Interview() {
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={30}>
-                <div className="relative h-full bg-black p-4">
+                <div className="relative h-full p-4 bg-black">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="absolute right-2 top-2 bg-green-600 text-white hover:bg-green-700"
+                    className="absolute text-white bg-green-600 right-2 top-2 hover:bg-green-700"
                     onClick={handleRunCode}
                   >
-                    <Play className="mr-2 h-4 w-4" /> Run
+                    <Play className="w-4 h-4 mr-2" /> Run
                   </Button>
                   <pre className="mt-8 h-[calc(100%-3rem)] overflow-auto font-mono text-white">
                     {output}
