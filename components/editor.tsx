@@ -35,6 +35,7 @@ const Editor = memo(function Editor({
   return (
     <MonacoEditor
       height="100%"
+      defaultLanguage="javascript"
       language={language}
       value={localCode}
       onChange={handleChange}
@@ -43,6 +44,7 @@ const Editor = memo(function Editor({
         minimap: { enabled: false },
         fontSize: 14,
         automaticLayout: true,
+        language,
       }}
       onMount={handleEditorDidMount}
     />

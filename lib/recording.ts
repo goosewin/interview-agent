@@ -1,9 +1,9 @@
-type RecordingOptions = {
+export type RecordingOptions = {
   onDataAvailable?: (blob: Blob) => void;
   onError?: (error: Error) => void;
   onStart?: () => void;
   onStop?: () => void;
-  onAudioNode?: (audioNode: AudioNode) => void; // Callback to get audio node for Eleven Labs
+  onAudioNode?: (audioNode: AudioNode) => void;
 };
 
 export class InterviewRecorder {
@@ -18,14 +18,13 @@ export class InterviewRecorder {
     this.options = options;
   }
 
-  // Get the audio node for Eleven Labs to connect to
   getAudioDestination(): AudioNode | null {
     return this.audioDestination;
   }
 
   private cleanupAudioContext() {
-    if (this.audioContext?.state !== 'closed') {
-      this.audioContext?.close();
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close();
     }
     this.audioContext = null;
     this.audioDestination = null;
@@ -33,85 +32,51 @@ export class InterviewRecorder {
 
   async startRecording() {
     try {
-      // Get screen share (video only) first
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          displaySurface: 'monitor',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 30 },
-        },
-        audio: false, // We'll handle audio separately
+        video: { width: 1920, height: 1080, frameRate: 30 },
+        audio: false,
       });
-
-      // Return the stream immediately so UI can check if permission was granted
       return {
-        screenStream, proceed: async () => {
+        screenStream,
+        proceed: async () => {
           try {
-            // Get microphone stream
             const micStream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                sampleRate: 44100,
-              },
+              audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
               video: false,
             });
-
-            // Create new AudioContext for mixing
             this.audioContext = new AudioContext();
             this.audioDestination = this.audioContext.createMediaStreamDestination();
-
-            // Connect microphone audio
             const micSource = this.audioContext.createMediaStreamSource(micStream);
             const micGain = this.audioContext.createGain();
-            micGain.gain.value = 0.7; // Slightly lower mic volume
+            micGain.gain.value = 0.7;
             micSource.connect(micGain).connect(this.audioDestination);
-
-            // Notify about audio node availability for Eleven Labs
             if (this.options.onAudioNode) {
               this.options.onAudioNode(this.audioDestination);
             }
-
-            // Create final stream with video and mixed audio
             this.stream = new MediaStream([
               ...screenStream.getVideoTracks(),
-              ...this.audioDestination.stream.getAudioTracks()
+              ...this.audioDestination.stream.getAudioTracks(),
             ]);
-
-            // Create MediaRecorder with optimized settings
             this.mediaRecorder = new MediaRecorder(this.stream, {
               mimeType: 'video/webm;codecs=vp9,opus',
               videoBitsPerSecond: 3000000,
               audioBitsPerSecond: 128000,
             });
-
-            // Handle data chunks
             this.mediaRecorder.ondataavailable = (event) => {
               if (event.data.size > 0) {
                 this.chunks.push(event.data);
                 this.options.onDataAvailable?.(event.data);
               }
             };
-
-            // Handle recording stop
-            this.mediaRecorder.onstop = () => {
-              const recording = new Blob(this.chunks, { type: 'video/webm' });
-              this.chunks = [];
-              this.options.onStop?.();
-              return recording;
-            };
-
-            // Start recording
             this.mediaRecorder.start(1000);
             this.options.onStart?.();
           } catch (error) {
-            screenStream.getTracks().forEach(track => track.stop());
+            screenStream.getTracks().forEach((track) => track.stop());
             this.cleanupAudioContext();
             this.options.onError?.(error as Error);
             throw error;
           }
-        }
+        },
       };
     } catch (error) {
       this.cleanupAudioContext();
@@ -126,7 +91,6 @@ export class InterviewRecorder {
         reject(new Error('No recording in progress'));
         return;
       }
-
       this.mediaRecorder.onstop = () => {
         const recording = new Blob(this.chunks, { type: 'video/webm' });
         this.chunks = [];
@@ -137,7 +101,6 @@ export class InterviewRecorder {
         this.options.onStop?.();
         resolve(recording);
       };
-
       this.mediaRecorder.stop();
     });
   }

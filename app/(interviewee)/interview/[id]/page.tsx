@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { InterviewRecorder } from '@/lib/recording';
 import { cn } from '@/lib/utils';
+import { useConversation } from '@11labs/react';
 import { Editor, type OnMount } from '@monaco-editor/react';
 import { Check, Loader2, Play, X } from 'lucide-react';
 import type { editor } from 'monaco-editor';
@@ -30,6 +31,7 @@ type Interview = {
   status: 'not_started' | 'in_progress' | 'completed' | 'cancelled' | 'abandoned';
   problemDescription: string;
   code?: string;
+  candidateName?: string;
 };
 
 type DeviceInfo = {
@@ -68,15 +70,14 @@ export default function Interview() {
   const [language, setLanguage] = useState('javascript');
   const [, /* isRecording */ setIsRecording] = useState(false);
   const voiceMessagesRef = useRef<Array<{ message: string; source: 'ai' | 'user' }>>([]);
-  const [voiceMessages, setVoiceMessages] = useState<Array<{ message: string; source: 'ai' | 'user' }>>(
-    []
-  );
+  const [voiceMessages, setVoiceMessages] = useState<Array<{ message: string; source: 'ai' | 'user' }>>([]);
 
-  // Keep code in sync
+  // Keep code in sync with refs for immediate access
   const codeRef = useRef(code);
-  useEffect(() => {
-    codeRef.current = code;
-  }, [code]);
+  const startTimeRef = useRef<number | null>(null);
+  const interviewIdRef = useRef<string | null>(null);
+  const recorderRef = useRef<InterviewRecorder | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Preflight state
   const [preflightComplete, setPreflightComplete] = useState(false);
@@ -85,7 +86,9 @@ export default function Interview() {
   const [consentGiven, setConsentGiven] = useState(false);
   const [dataConsent, setDataConsent] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isInterviewStarted, setIsInterviewStarted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   // Device selection state
   const [videoDevices, setVideoDevices] = useState<DeviceInfo[]>([]);
@@ -95,18 +98,63 @@ export default function Interview() {
   const [selectedPlaybackDevice, setSelectedPlaybackDevice] = useState<string>('');
   const [playbackDevices, setPlaybackDevices] = useState<DeviceInfo[]>([]);
 
-  const recorderRef = useRef<InterviewRecorder | null>(null);
-  const startTimeRef = useRef<number | null>(null);
-  const [isInterviewStarted, setIsInterviewStarted] = useState(false);
+  // Audio destination for Eleven Labs
+  const [/* audioDestination */, setAudioDestination] = useState<AudioNode | null>(null);
+  const conversationRef = useRef<ReturnType<typeof useConversation>>(null!);
 
-  const interviewIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    codeRef.current = code;
+    // Update server tool endpoint
+    fetch('/api/tools/code-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, language }),
+    }).catch(error => {
+      console.error('Failed to update code:', error);
+    });
+  }, [code, language]);
 
-  const [isSaving, setIsSaving] = useState(false);
+  useEffect(() => {
+    voiceMessagesRef.current = voiceMessages;
+  }, [voiceMessages]);
 
-  // Add state for audio destination
-  const [audioDestination, setAudioDestination] = useState<AudioNode | null>(null);
+  const handleVoiceMessage = useCallback(
+    async (message: { message: string; source: 'ai' | 'user'; clear?: boolean; timeInCallSecs?: number }) => {
+      if (message.clear) {
+        // Don't clear messages on disconnect/cleanup
+        if (!message.source) {
+          setVoiceMessages([]);
+          voiceMessagesRef.current = [];
+        }
+        return;
+      }
 
-  const [isStarting, setIsStarting] = useState(false);
+      // Update state through ref to avoid re-renders
+      const newMessages = [...voiceMessagesRef.current, { message: message.message, source: message.source }];
+      voiceMessagesRef.current = newMessages;
+      setVoiceMessages(newMessages);
+
+      // Persist message to database
+      const currentInterviewId = interviewIdRef.current;
+      if (currentInterviewId) {
+        try {
+          await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              interviewId: currentInterviewId,
+              role: message.source === 'ai' ? 'assistant' : 'user',
+              content: message.message,
+              timeInCallSecs: message.timeInCallSecs,
+            }),
+          });
+        } catch (error) {
+          console.error('Failed to persist message:', error);
+        }
+      }
+    },
+    [] // No dependencies needed since we use refs
+  );
 
   useEffect(() => {
     if (interview?.id) {
@@ -168,28 +216,6 @@ export default function Interview() {
 
     return () => clearInterval(heartbeatInterval);
   }, [id, router]);
-
-  // Save code changes periodically
-  useEffect(() => {
-    if (!interview?.id) return;
-
-    const saveInterval = setInterval(async () => {
-      try {
-        await fetch(`/api/interviews/${interview.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: codeRef.current,
-            language,
-          }),
-        });
-      } catch (error) {
-        console.error('Failed to save code:', error);
-      }
-    }, 10000); // Every 10 seconds
-
-    return () => clearInterval(saveInterval);
-  }, [interview?.id, language]);
 
   // Cleanup media streams on unmount
   useEffect(() => {
@@ -423,49 +449,6 @@ export default function Interview() {
       return () => clearInterval(timer);
     }
   }, [preflightComplete, timeLeft]);
-
-  // Update the ref whenever state changes
-  useEffect(() => {
-    voiceMessagesRef.current = voiceMessages;
-  }, [voiceMessages]);
-
-  const handleVoiceMessage = useCallback(
-    async (message: { message: string; source: 'ai' | 'user'; clear?: boolean; timeInCallSecs?: number }) => {
-      if (message.clear) {
-        // Don't clear messages on disconnect/cleanup
-        if (!message.source) {
-          setVoiceMessages([]);
-          voiceMessagesRef.current = [];
-        }
-        return;
-      }
-
-      // Update state through ref to avoid re-renders
-      const newMessages = [...voiceMessagesRef.current, { message: message.message, source: message.source }];
-      voiceMessagesRef.current = newMessages;
-      setVoiceMessages(newMessages);
-
-      // Persist message to database
-      const currentInterviewId = interviewIdRef.current;
-      if (currentInterviewId) {
-        try {
-          await fetch('/api/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              interviewId: currentInterviewId,
-              role: message.source === 'ai' ? 'assistant' : 'user',
-              content: message.message,
-              timeInCallSecs: message.timeInCallSecs,
-            }),
-          });
-        } catch (error) {
-          console.error('Failed to persist message:', error);
-        }
-      }
-    },
-    [] // No dependencies needed since we use refs
-  );
 
   const stopRecording = useCallback(async () => {
     if (!interview || !recorderRef.current) return;
@@ -910,7 +893,8 @@ export default function Interview() {
                 <Conversation
                   onMessage={handleVoiceMessage}
                   autoStart={isInterviewStarted}
-                  audioDestination={audioDestination}
+                  conversationRef={conversationRef}
+                  candidateName={interview.candidateName}
                 />
                 <div className="mt-4 h-48 overflow-y-auto">
                   <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />

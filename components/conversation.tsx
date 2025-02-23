@@ -3,22 +3,42 @@
 import { useConversation } from '@11labs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-type Message = {
+export type Message = {
   message: string;
   source: 'ai' | 'user';
   clear?: boolean;
   timeInCallSecs?: number;
 };
 
+export type CodeUpdateData = {
+  language?: string;
+  code?: string;
+  cursor?: {
+    lineNumber?: number;
+    column?: number;
+  };
+  selections?: Array<{
+    startLineNumber?: number;
+    startColumn?: number;
+    endLineNumber?: number;
+    endColumn?: number;
+  }>;
+  timeInCallSecs?: number;
+};
+
+type ConversationProps = {
+  onMessage: (message: Message) => void;
+  autoStart?: boolean;
+  conversationRef?: React.RefObject<ReturnType<typeof useConversation>>;
+  candidateName?: string;
+};
+
 export function Conversation({
   onMessage,
   autoStart = false,
-  audioDestination = null,
-}: {
-  onMessage: (message: Message) => void;
-  autoStart?: boolean;
-  audioDestination?: AudioNode | null;
-}) {
+  conversationRef,
+  candidateName,
+}: ConversationProps) {
   const isActive = useRef(false);
   const messageHandlerRef = useRef(onMessage);
   const [status, setStatus] = useState<string>('disconnected');
@@ -26,12 +46,6 @@ export function Conversation({
   const initRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
 
-  // Keep message handler up to date without causing re-renders
-  useEffect(() => {
-    messageHandlerRef.current = onMessage;
-  }, [onMessage]);
-
-  // Create stable callbacks
   const handleConnect = useCallback(() => {
     if (!initRef.current) return;
     console.log('Connected');
@@ -51,21 +65,27 @@ export function Conversation({
 
   const handleMessage = useCallback((message: unknown) => {
     if (!initRef.current) return;
+
+    // Assume message structure has the following properties
     const typedMessage = message as {
       message: string;
       source: 'ai' | 'user';
       speaking?: boolean;
     };
 
+    if (typeof typedMessage.speaking === 'boolean') {
+      setIsSpeaking(typedMessage.speaking);
+    }
+
     const timeInCallSecs = startTimeRef.current
       ? Math.floor((Date.now() - startTimeRef.current) / 1000)
       : 0;
 
     messageHandlerRef.current({
-      ...typedMessage,
+      message: typedMessage.message,
+      source: typedMessage.source,
       timeInCallSecs,
     });
-    setIsSpeaking(!!typedMessage.speaking);
   }, []);
 
   const handleError = useCallback((error: Error) => {
@@ -76,16 +96,29 @@ export function Conversation({
     setStatus('error');
   }, []);
 
-  // Create stable conversation instance with audio destination
-  const conversationRef = useRef(
-    useConversation({
-      onConnect: handleConnect,
-      onDisconnect: handleDisconnect,
-      onMessage: handleMessage,
-      onError: handleError,
-      audioDestination, // Pass audio destination to Eleven Labs
-    })
-  );
+  // Create a stable conversation instance.
+  const conversationInstance = useConversation({
+    onConnect: handleConnect,
+    onDisconnect: handleDisconnect,
+    onMessage: handleMessage,
+    onError: handleError,
+  });
+  const internalConversationRef = useRef(conversationInstance);
+
+  useEffect(() => {
+    if (conversationRef) {
+      conversationRef.current = internalConversationRef.current;
+    }
+  }, [conversationRef]);
+
+  const getSignedUrl = async (): Promise<string> => {
+    const response = await fetch("/api/get-signed-url");
+    if (!response.ok) {
+      throw new Error(`Failed to get signed url: ${response.statusText}`);
+    }
+    const { signedUrl } = await response.json();
+    return signedUrl;
+  };
 
   const startConversation = useCallback(async () => {
     if (isActive.current) return;
@@ -93,8 +126,13 @@ export function Conversation({
       await navigator.mediaDevices.getUserMedia({ audio: true });
       messageHandlerRef.current({ message: '', source: 'ai', clear: true });
       initRef.current = true;
-      await conversationRef.current.startSession({
+      const signedUrl = await getSignedUrl();
+      await internalConversationRef.current.startSession({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
+        signedUrl,
+        dynamicVariables: {
+          user_name: candidateName || 'Candidate',
+        },
       });
     } catch (error) {
       console.error('Failed to start conversation:', error);
@@ -102,12 +140,12 @@ export function Conversation({
       startTimeRef.current = null;
       setStatus('error');
     }
-  }, []);
+  }, [candidateName]);
 
   const stopConversation = useCallback(async () => {
     if (!isActive.current) return;
     try {
-      await conversationRef.current.endSession();
+      await internalConversationRef.current.endSession();
     } finally {
       isActive.current = false;
       initRef.current = false;
@@ -116,14 +154,11 @@ export function Conversation({
     }
   }, []);
 
-  // Handle auto-start and cleanup with proper cleanup check
   useEffect(() => {
     let mounted = true;
-
     if (mounted && autoStart && !isActive.current) {
       startConversation();
     }
-
     return () => {
       mounted = false;
       if (isActive.current) {
@@ -135,8 +170,9 @@ export function Conversation({
   return (
     <div className="flex flex-col items-center">
       <div className="flex flex-col items-center">
-        <p>Status: {status}</p>
-        <p>Agent is {isSpeaking ? 'speaking' : 'listening'}</p>
+        <p className="text-sm text-muted-foreground">
+          Status: {status}. {isSpeaking ? 'Speaking' : 'Listening'}
+        </p>
       </div>
     </div>
   );
