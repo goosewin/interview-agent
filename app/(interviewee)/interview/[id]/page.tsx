@@ -891,9 +891,8 @@ export default function Interview() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Camera View */}
                 <Card className="p-4">
-                  <div className="font-bold">{/* TODO: get candidate name */}Candidate Name</div>
+                  <div className="text-sm font-bold truncate">{interview.candidateName || 'Candidate'}</div>
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                    {/* candidate name */}
                     <video
                       ref={videoRef}
                       autoPlay
@@ -905,7 +904,7 @@ export default function Interview() {
                 </Card>
 
                 <Card className="p-4">
-                  <div className="font-bold">AI Interviewer</div>
+                  <div className="text-sm font-bold truncate">Melody</div>
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
                     <Image
                       src="/interviewer.png"
