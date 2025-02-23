@@ -32,7 +32,7 @@ export default function Home() {
       }
 
       const interview = await response.json();
-      router.push(`/interview/${interview.id}`);
+      router.push(`/interview/${interview.identifier}`);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to join interview');
     } finally {
