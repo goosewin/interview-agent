@@ -20,22 +20,31 @@ const getInterviewData = createTool({
   }),
   execute: async (context) => {
     const { interviewId } = context.context;
+    console.log('[getInterviewData] Looking up interview with ID:', interviewId);
+
     const interview = await db.query.interviews.findFirst({
       where: eq(interviews.id, interviewId),
-      with: {
-        problem: true,
-        candidate: true,
-      },
     });
 
+    console.log('[getInterviewData] Interview lookup result:', interview ? 'found' : 'not found');
+
     if (!interview) {
+      console.error('[getInterviewData] Interview not found for ID:', interviewId);
       throw new Error('Interview not found');
     }
+
+    // Construct transcript from messages
+    const transcript = interview.messages?.map(msg => ({
+      message: msg.message,
+      source: msg.role === 'agent' ? 'ai' : 'user'
+    })) || [];
+
+    console.log('[getInterviewData] Constructed transcript with', transcript.length, 'messages');
 
     return {
       problemDescription: interview.problemDescription,
       finalSolution: interview.code,
-      transcript: interview.transcript,
+      transcript,
       language: interview.language,
       candidateId: interview.candidateId,
     };
@@ -95,8 +104,17 @@ const storeEvaluation = createTool({
       hiringDecision,
     } = context.context;
 
+    // Get the interview first to get its ID
+    const interview = await db.query.interviews.findFirst({
+      where: eq(interviews.id, interviewId),
+    });
+
+    if (!interview) {
+      throw new Error('Interview not found');
+    }
+
     await db.insert(evaluations).values({
-      interviewId,
+      interviewId: interview.id,
       candidateId,
       technicalScore: String(technicalEvaluation.technicalScore),
       communicationScore: String(communicationEvaluation.communicationScore),
@@ -111,7 +129,7 @@ const storeEvaluation = createTool({
     });
 
     // Update interview status to indicate evaluation is complete
-    await db.update(interviews).set({ status: 'completed' }).where(eq(interviews.id, interviewId));
+    await db.update(interviews).set({ status: 'completed' }).where(eq(interviews.id, interview.id));
 
     return { success: true };
   },

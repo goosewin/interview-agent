@@ -35,6 +35,7 @@ import ProblemContent from './ProblemContent';
 
 type Interview = {
   id: string;
+  identifier: string;
   problemId: string;
   language: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'cancelled' | 'abandoned';
@@ -607,7 +608,7 @@ export default function Interview() {
       }
 
       // Save final code state using identifier
-      await fetch(`/api/interviews/${identifier}`, {
+      await fetch(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -645,7 +646,7 @@ export default function Interview() {
 
       // Generate evaluation report
       toast.info('Generating evaluation report...');
-      const evaluationResponse = await fetch(`/api/interviews/${identifier}/evaluate`, {
+      const evaluationResponse = await fetch(`/api/interviews/${interview.identifier}/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,3 +1,5 @@
+import type { InferModel } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 import {
   boolean,
   jsonb,
@@ -133,3 +135,58 @@ export const evaluations = pgTable('evaluations', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export type Candidate = InferModel<typeof candidates>;
+export type Problem = InferModel<typeof problems>;
+export type Interview = InferModel<typeof interviews>;
+export type Evaluation = InferModel<typeof evaluations>;
+export type Message = InferModel<typeof messages>;
+export type CodeSubmission = InferModel<typeof codeSubmissions>;
+
+export const candidateRelations = relations(candidates, ({ many }) => ({
+  interviews: many(interviews),
+  evaluations: many(evaluations),
+}));
+
+export const problemRelations = relations(problems, ({ many }) => ({
+  interviews: many(interviews),
+}));
+
+export const interviewRelations = relations(interviews, ({ one, many }) => ({
+  candidate: one(candidates, {
+    fields: [interviews.candidateId],
+    references: [candidates.id],
+  }),
+  problem: one(problems, {
+    fields: [interviews.problemId],
+    references: [problems.id],
+  }),
+  evaluations: many(evaluations),
+  messages: many(messages),
+  codeSubmissions: many(codeSubmissions),
+}));
+
+export const evaluationRelations = relations(evaluations, ({ one }) => ({
+  interview: one(interviews, {
+    fields: [evaluations.interviewId],
+    references: [interviews.id],
+  }),
+  candidate: one(candidates, {
+    fields: [evaluations.candidateId],
+    references: [candidates.id],
+  }),
+}));
+
+export const messageRelations = relations(messages, ({ one }) => ({
+  interview: one(interviews, {
+    fields: [messages.interviewId],
+    references: [interviews.id],
+  }),
+}));
+
+export const codeSubmissionRelations = relations(codeSubmissions, ({ one }) => ({
+  interview: one(interviews, {
+    fields: [codeSubmissions.interviewId],
+    references: [interviews.id],
+  }),
+}));
