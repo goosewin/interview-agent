@@ -1,4 +1,4 @@
-import { getInterview, updateInterview } from '@/lib/db';
+import { getInterview, getInterviewByIdentifier, updateInterview } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -16,7 +16,9 @@ const updateInterviewSchema = z.object({
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const interview = await getInterview(id);
+    // Use getInterviewByIdentifier for short identifiers (non-UUID format)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const interview = isUUID ? await getInterview(id) : await getInterviewByIdentifier(id);
 
     if (!interview) {
       return new Response('Interview not found', { status: 404 });
@@ -37,7 +39,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const interview = await getInterview(id);
+    // Use getInterviewByIdentifier for short identifiers (non-UUID format)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const interview = isUUID ? await getInterview(id) : await getInterviewByIdentifier(id);
     if (!interview) {
       return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
     }

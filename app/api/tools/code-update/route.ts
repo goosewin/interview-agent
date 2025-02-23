@@ -1,4 +1,4 @@
-import { getInterview, updateInterview } from '@/lib/db';
+import { getInterview, getInterviewByIdentifier, updateInterview } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +12,17 @@ export async function POST(req: Request) {
       });
     }
 
-    await updateInterview(interviewId, {
+    // Check if we need to use the identifier or UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(interviewId);
+    const interview = isUUID ? await getInterview(interviewId) : await getInterviewByIdentifier(interviewId);
+    if (!interview) {
+      return new Response(JSON.stringify({ error: 'Interview not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    await updateInterview(interview.id, {
       code,
       language,
       updatedAt: new Date(),
@@ -42,7 +52,9 @@ export async function GET(req: Request) {
       });
     }
 
-    const interview = await getInterview(interviewId);
+    // Check if we need to use the identifier or UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(interviewId);
+    const interview = isUUID ? await getInterview(interviewId) : await getInterviewByIdentifier(interviewId);
     if (!interview) {
       return new Response(JSON.stringify({ error: 'Interview not found' }), {
         status: 404,
