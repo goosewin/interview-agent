@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import {
   Select,
   SelectContent,
@@ -12,15 +13,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Editor } from '@monaco-editor/react';
-import { Check, X } from 'lucide-react';
+import { Editor, type OnMount } from '@monaco-editor/react';
+import { Check, Play, X } from 'lucide-react';
+import type { editor } from 'monaco-editor';
+import { MDXRemote } from 'next-mdx-remote/rsc';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 type Interview = {
   id: string;
-  problemDescription: string;
+  problemId: string;
   language: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
 };
@@ -30,6 +34,21 @@ type DeviceInfo = {
   label: string;
 };
 
+const languages = [
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'python', label: 'Python' },
+  { value: 'java', label: 'Java' },
+  { value: 'cpp', label: 'C++' },
+  { value: 'csharp', label: 'C#' },
+  { value: 'go', label: 'Go' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'ruby', label: 'Ruby' },
+  { value: 'php', label: 'PHP' },
+  { value: 'swift', label: 'Swift' },
+  { value: 'kotlin', label: 'Kotlin' }
+];
+
 export default function Interview({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -37,9 +56,10 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const [timeLeft, setTimeLeft] = useState(45 * 60); // 45 minutes in seconds
+  const [output, setOutput] = useState('');
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const [problemContent, setProblemContent] = useState('');
 
   // Preflight state
   const [preflightComplete, setPreflightComplete] = useState(false);
@@ -72,6 +92,14 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
         }
 
         setInterview(data);
+
+        // Fetch problem content
+        const problemResponse = await fetch(`/api/problems/${data.problemId}`);
+        if (!problemResponse.ok) {
+          throw new Error('Failed to fetch problem');
+        }
+        const problemData = await problemResponse.json();
+        setProblemContent(problemData.content);
       } catch (error) {
         console.error('Error fetching interview:', error);
         setError('Failed to load interview');
@@ -175,74 +203,50 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
     setPreflightComplete(true);
   }
 
-  const startRecording = async () => {
-    try {
-      if (!stream) {
-        throw new Error('No media stream available');
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleEditorDidMount: OnMount = (editor) => {
+    editorRef.current = editor;
+  };
+
+  const handleRunCode = () => {
+    if (editorRef.current) {
+      const editorCode = editorRef.current.getValue();
+      try {
+        // In a real implementation, this should be done server-side
+        const result = eval(editorCode);
+        setOutput(`Output: ${result}\n`);
+      } catch (error) {
+        setOutput(`Error: ${error}\n`);
       }
+    }
+  };
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9,opus'
-      });
+  useEffect(() => {
+    if (preflightComplete && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [preflightComplete, stream]);
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const recordingBlob = new Blob(chunksRef.current, { type: 'video/webm' });
-        chunksRef.current = [];
-
-        // Create form data with the recording
-        const formData = new FormData();
-        formData.append('recording', recordingBlob, 'recording.webm');
-        formData.append('interviewId', id);
-        formData.append('action', 'stop');
-
-        try {
-          const response = await fetch('/api/recording', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to upload recording');
+  // Timer effect
+  useEffect(() => {
+    if (preflightComplete && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 0) {
+            clearInterval(timer);
+            return 0;
           }
-        } catch (error) {
-          console.error('Error uploading recording:', error);
-          setError('Failed to upload recording');
-        }
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000); // Capture chunks every second
-      setIsRecording(true);
-
-      // Start recording on server
-      const response = await fetch('/api/recording', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interviewId: id, action: 'start' }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to start recording');
-      }
-    } catch (err) {
-      console.error('Error starting recording:', err);
-      setError('Failed to start recording. Please check your camera and microphone permissions.');
-      setIsRecording(false);
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
     }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
+  }, [preflightComplete, timeLeft]);
 
   if (isLoading) {
     return (
@@ -406,49 +410,117 @@ export default function Interview({ params }: { params: Promise<{ id: string }> 
   }
 
   return (
-    <div className="container mx-auto max-w-5xl space-y-6 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Technical Interview</h1>
-        <Button
-          variant={isRecording ? 'destructive' : 'default'}
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={interview.status !== 'not_started'}
-        >
-          {isRecording ? 'Stop Recording' : 'Start Interview'}
-        </Button>
-      </div>
+    <div className="h-screen bg-background">
+      <ResizablePanelGroup direction="horizontal" className="min-h-screen rounded-lg">
+        <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+          <div className="flex h-full flex-col gap-4 p-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Camera View */}
+              <Card>
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm">Candidate</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="relative aspect-square bg-black rounded-lg overflow-hidden">
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                  </div>
+                </CardContent>
+              </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Problem</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="prose max-w-none dark:prose-invert">
-            {interview.problemDescription}
+              {/* AI Profile */}
+              <Card>
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm">AI Interviewer</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="relative aspect-square rounded-lg overflow-hidden">
+                    <Image
+                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-02-22%20at%204.37.30%E2%80%AFPM-E9usIrXBPhRMPQdCoJdKFnchP8NehT.png"
+                      alt="AI Interviewer"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Timer */}
+            <Card>
+              <CardContent className="p-4 flex items-center justify-center">
+                <span className="font-medium text-muted-foreground mr-2">Time Remaining:</span>
+                <span className="font-bold text-xl text-primary">{formatTime(timeLeft)}</span>
+              </CardContent>
+            </Card>
+
+            {/* Problem Description */}
+            <Card className="flex-1 flex flex-col overflow-hidden">
+              <CardHeader>
+                <CardTitle>Problem</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-y-auto prose prose-invert max-w-none">
+                <MDXRemote source={problemContent} />
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </ResizablePanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Code Editor</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Editor
-            height="400px"
-            defaultLanguage={interview.language}
-            value={code}
-            onChange={(value) => setCode(value || '')}
-            theme="vs-dark"
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              lineNumbers: 'on',
-              automaticLayout: true,
-            }}
-          />
-        </CardContent>
-      </Card>
+        <ResizableHandle withHandle />
+
+        <ResizablePanel defaultSize={75}>
+          <div className="flex h-full flex-col p-4">
+            {/* Language Selector */}
+            <div className="mb-4">
+              <Select value={interview?.language} onValueChange={(value) => setInterview(prev => prev ? { ...prev, language: value } : null)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {languages.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <ResizablePanelGroup direction="vertical" className="flex-1 rounded-lg border">
+              <ResizablePanel defaultSize={70}>
+                <div className="h-full bg-zinc-950 p-4">
+                  <Editor
+                    height="100%"
+                    defaultLanguage={interview?.language}
+                    value={code}
+                    onChange={(value) => setCode(value || '')}
+                    theme="vs-dark"
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      automaticLayout: true,
+                    }}
+                    onMount={handleEditorDidMount}
+                  />
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={30}>
+                <div className="h-full bg-black p-4 relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleRunCode}
+                  >
+                    <Play className="h-4 w-4 mr-2" /> Run
+                  </Button>
+                  <pre className="text-white font-mono mt-8 overflow-auto h-[calc(100%-3rem)]">{output}</pre>
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

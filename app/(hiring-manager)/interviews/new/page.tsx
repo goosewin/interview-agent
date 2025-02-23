@@ -30,7 +30,13 @@ type Candidate = {
   email: string;
 };
 
-type FormField = 'candidateId' | 'date' | 'time' | 'difficulty';
+type Problem = {
+  id: string;
+  title: string;
+  difficulty: string;
+};
+
+type FormField = 'candidateId' | 'date' | 'time' | 'difficulty' | 'problemId';
 
 type ZodError = {
   path: FormField[];
@@ -50,13 +56,18 @@ const formSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     required_error: 'Please select a difficulty level.',
   }),
+  problemId: z.string().optional(), // Optional, will use random if not provided
 });
+
+const RANDOM_PROBLEM = 'random';
 
 export default function NewInterview() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [problems, setProblems] = useState<Problem[]>([]);
   const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
+  const [isLoadingProblems, setIsLoadingProblems] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -65,25 +76,43 @@ export default function NewInterview() {
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString('en-US', { hour12: false }).slice(0, 5),
       difficulty: 'medium',
+      problemId: '',
     },
   });
 
   useEffect(() => {
-    async function fetchCandidates() {
+    async function fetchData() {
       try {
         setIsLoadingCandidates(true);
-        const response = await fetch('/api/candidates');
-        if (!response.ok) throw new Error('Failed to fetch candidates');
-        const data = await response.json();
-        setCandidates(data);
+        setIsLoadingProblems(true);
+
+        const [candidatesRes, problemsRes] = await Promise.all([
+          fetch('/api/candidates'),
+          fetch('/api/problems')
+        ]);
+
+        if (!candidatesRes.ok) throw new Error('Failed to fetch candidates');
+        if (!problemsRes.ok) throw new Error('Failed to fetch problems');
+
+        const candidatesData = await candidatesRes.json();
+        const problemsData = await problemsRes.json();
+
+        setCandidates(candidatesData);
+        setProblems(problemsData);
       } catch (error) {
-        console.error('Error fetching candidates:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoadingCandidates(false);
+        setIsLoadingProblems(false);
       }
     }
-    fetchCandidates();
+    fetchData();
   }, []);
+
+  // Filter problems based on selected difficulty
+  const filteredProblems = problems.filter(
+    (problem) => problem.difficulty === form.watch('difficulty')
+  );
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -91,7 +120,10 @@ export default function NewInterview() {
       const response = await fetch('/api/interviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          problemId: values.problemId === RANDOM_PROBLEM ? undefined : values.problemId,
+        }),
       });
 
       if (!response.ok) {
@@ -117,10 +149,10 @@ export default function NewInterview() {
     }
   }
 
-  if (isLoadingCandidates) {
+  if (isLoadingCandidates || isLoadingProblems) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <p>Loading candidates...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -219,6 +251,34 @@ export default function NewInterview() {
                 </Select>
                 <FormDescription>
                   Select the difficulty level for the interview problem.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="problemId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Problem (Optional)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || RANDOM_PROBLEM}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a problem (or leave empty for random)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={RANDOM_PROBLEM}>Random problem of selected difficulty</SelectItem>
+                    {filteredProblems.map((problem) => (
+                      <SelectItem key={problem.id} value={problem.id}>
+                        {problem.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Optionally select a specific problem, or choose random to automatically assign one of the selected difficulty.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

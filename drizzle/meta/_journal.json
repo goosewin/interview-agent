@@ -50,6 +50,13 @@
       "when": 1740266858862,
       "tag": "0006_flawless_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1740272602293,
+      "tag": "0007_flashy_wolf_cub",
+      "breakpoints": true
     }
   ]
 }

@@ -25,10 +25,11 @@ export const problems = pgTable('problems', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').notNull(), // Clerk user ID
   title: text('title').notNull(),
-  description: text('description').notNull(),
+  description: text('description').notNull(), // MDX content
   difficulty: text('difficulty').notNull(),
   sampleInput: text('sample_input'),
   sampleOutput: text('sample_output'),
+  constraints: text('constraints'),
   metadata: jsonb('metadata').default({}).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

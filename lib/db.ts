@@ -7,6 +7,10 @@ export type NewInterview = typeof interviews.$inferInsert;
 export type Interview = typeof interviews.$inferSelect & {
   candidateName: string | null;
   candidateEmail: string | null;
+  metadata: {
+    problemId?: string;
+  };
+  problemDescription?: string;
 };
 export type Message = typeof messages.$inferSelect;
 export type CodeSubmission = typeof codeSubmissions.$inferSelect;

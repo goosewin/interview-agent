@@ -1,4 +1,4 @@
-import { getInterviewByIdentifier } from '@/lib/db';
+import { getInterviewByIdentifier, getProblem } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -11,6 +11,18 @@ export async function POST(request: Request) {
     const interview = await getInterviewByIdentifier(identifier);
     if (!interview) {
       return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
+    }
+
+    // If we don't have a problem description, try to fetch it from the problems table
+    if (!interview.problemDescription && interview.metadata?.problemId) {
+      const problem = await getProblem(interview.metadata.problemId, interview.userId);
+      if (!problem) {
+        return NextResponse.json({ error: 'Problem not found' }, { status: 404 });
+      }
+      return NextResponse.json({
+        ...interview,
+        problemDescription: problem.description,
+      });
     }
 
     return NextResponse.json(interview);

@@ -13,6 +13,7 @@ const updateProblemSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   sampleInput: z.string().optional(),
   sampleOutput: z.string().optional(),
+  constraints: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 

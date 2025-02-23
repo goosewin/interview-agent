@@ -37,6 +37,7 @@ const formSchema = z.object({
   }),
   sampleInput: z.string().optional(),
   sampleOutput: z.string().optional(),
+  constraints: z.string().optional(),
 });
 
 export default function NewProblem() {
@@ -52,6 +53,7 @@ export default function NewProblem() {
       difficulty: 'medium',
       sampleInput: '',
       sampleOutput: '',
+      constraints: '',
     },
   });
 
@@ -118,11 +120,17 @@ export default function NewProblem() {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description (Markdown)</FormLabel>
+                <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea {...field} className="min-h-[200px]" />
+                  <Textarea
+                    {...field}
+                    placeholder="# Problem Description&#10;&#10;Write your problem description in MDX format..."
+                    className="min-h-[200px] font-mono"
+                  />
                 </FormControl>
-                <FormDescription>Enter the description of the problem using markdown.</FormDescription>
+                <FormDescription>
+                  Write the problem description using MDX format. You can use markdown and custom components.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -157,9 +165,9 @@ export default function NewProblem() {
               <FormItem>
                 <FormLabel>Sample Input</FormLabel>
                 <FormControl>
-                  <Textarea {...field} />
+                  <Textarea {...field} className="font-mono" />
                 </FormControl>
-                <FormDescription>Enter a sample input for the problem.</FormDescription>
+                <FormDescription>Provide example input for the problem.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -171,9 +179,23 @@ export default function NewProblem() {
               <FormItem>
                 <FormLabel>Sample Output</FormLabel>
                 <FormControl>
-                  <Textarea {...field} />
+                  <Textarea {...field} className="font-mono" />
                 </FormControl>
-                <FormDescription>Enter the corresponding sample output.</FormDescription>
+                <FormDescription>Provide example output for the problem.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="constraints"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Constraints</FormLabel>
+                <FormControl>
+                  <Textarea {...field} className="font-mono" />
+                </FormControl>
+                <FormDescription>List any constraints or limitations for the problem.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -184,6 +206,13 @@ export default function NewProblem() {
           </Button>
         </form>
       </Form>
+      <div className="mt-8 rounded-lg border border-muted p-4">
+        <h2 className="text-lg font-semibold">Important Note</h2>
+        <p className="mt-2 text-muted-foreground">
+          Problem content should be added as an MDX file in the <code>problems</code> directory with the same name as the slug.
+          For example, if the slug is &quot;two-sum&quot;, create a file named <code>two-sum.mdx</code>.
+        </p>
+      </div>
     </div>
   );
 }

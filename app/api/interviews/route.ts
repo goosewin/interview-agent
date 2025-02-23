@@ -1,5 +1,6 @@
-import { createInterview, getUserInterviews } from '@/lib/db';
+import { createInterview, getProblems, getUserInterviews } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
+import { createId } from '@paralleldrive/cuid2';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -10,6 +11,7 @@ const createInterviewSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     required_error: 'Difficulty is required',
   }),
+  problemId: z.string().optional(),
 });
 
 export async function GET() {
@@ -40,9 +42,29 @@ export async function POST(req: Request) {
     // Combine date and time into a single datetime
     const scheduledFor = new Date(`${validatedData.date}T${validatedData.time}`);
 
+    // If no problem is selected, get a random one of the specified difficulty
+    let problemId = validatedData.problemId;
+    if (!problemId) {
+      const problems = await getProblems(user.id);
+      const matchingProblems = problems.filter(p => p.difficulty === validatedData.difficulty);
+
+      if (matchingProblems.length === 0) {
+        return NextResponse.json(
+          { error: `No problems found with difficulty: ${validatedData.difficulty}` },
+          { status: 400 }
+        );
+      }
+
+      // Select a random problem
+      const randomIndex = Math.floor(Math.random() * matchingProblems.length);
+      problemId = matchingProblems[randomIndex].id;
+    }
+
     const interview = await createInterview({
       userId: user.id,
       candidateId: validatedData.candidateId,
+      problemId,
+      identifier: createId(),
       scheduledFor,
       status: 'not_started',
       problemDescription: 'To be assigned', // Will be set when interview starts
