@@ -6,11 +6,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const interview = await db
-      .select()
-      .from(interviews)
-      .where(eq(interviews.id, id))
-      .limit(1);
+    const interview = await db.select().from(interviews).where(eq(interviews.id, id)).limit(1);
 
     if (!interview.length) {
       return NextResponse.json({ error: 'Interview not found' }, { status: 404 });
