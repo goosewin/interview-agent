@@ -552,7 +552,7 @@ export default function Interview() {
   }, [isInterviewStarted, interview, stopRecording, handleVoiceMessage]);
 
   const handleEndInterview = useCallback(async () => {
-    if (!interview) return;
+    if (!interview || isSaving) return;
 
     try {
       setIsSaving(true);
@@ -569,6 +569,13 @@ export default function Interview() {
         });
       }
 
+      // Stop recording first if it exists
+      let recording: Blob | undefined;
+      if (recorderRef.current) {
+        recording = await recorderRef.current.stopRecording();
+        recorderRef.current = null;
+      }
+
       // Save final code state
       await fetch(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
@@ -580,12 +587,8 @@ export default function Interview() {
         }),
       });
 
-      // Stop recording and wait for upload to complete
-      if (recorderRef.current) {
-        const recording = await recorderRef.current.stopRecording();
-        recorderRef.current = null;
-
-        // Upload recording
+      // Upload recording if we have one
+      if (recording) {
         const formData = new FormData();
         formData.append('recording', recording, 'recording.webm');
         formData.append('interviewId', interview.id);
@@ -611,14 +614,14 @@ export default function Interview() {
 
       // Small delay to ensure user sees success message
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsSaving(false);
       router.push('/');
     } catch (error) {
       console.error('Failed to end interview:', error);
       toast.error('Failed to end interview properly. Please try again.');
+    } finally {
       setIsSaving(false);
     }
-  }, [interview, handleVoiceMessage, stream, router, language]);
+  }, [interview, handleVoiceMessage, stream, router, language, isSaving]);
 
   // Add beforeunload handler when saving
   useEffect(() => {
