@@ -141,6 +141,25 @@ export default function NewInterview() {
         throw new Error('Failed to create interview');
       }
 
+      const interview = await response.json();
+
+      // Send email notification
+      const emailResponse = await fetch('/api/send-interview-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          interviewId: interview.id,
+          identifier: interview.identifier,
+          candidateId: values.candidateId,
+          scheduledFor: `${values.date}T${values.time}`,
+        }),
+      });
+  
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.json();
+        console.error('Failed to send interview email:', errorData);
+      }
+
       router.push('/interviews');
     } catch (error) {
       console.error('Error creating interview:', error);
