@@ -3,14 +3,16 @@
 import { useConversation } from '@11labs/react';
 import { useCallback } from 'react';
 
-export function Conversation() {
+export function Conversation({ onMessage }: { onMessage: (message: { message: string; source: 'ai' | 'user' }) => void }) {
   const conversation = useConversation({
     onConnect: () => console.log('Connected'),
     onDisconnect: () => console.log('Disconnected'),
-    onMessage: (message: unknown) => console.log('Message:', message),
+    onMessage: (message: unknown) => {
+      console.log('Message:', message);
+      onMessage(message as { message: string; source: 'ai' | 'user' });
+    },
     onError: (error: Error) => console.error('Error:', error),
   });
-
 
   const startConversation = useCallback(async () => {
     try {
@@ -21,8 +23,6 @@ export function Conversation() {
       await conversation.startSession({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
       });
-
-      
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }

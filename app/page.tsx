@@ -1,6 +1,7 @@
 'use client';
 
 import ChatView from '@/components/ChatView';
+import { Conversation } from '@/components/conversation';
 import { InterviewRecorder } from '@/lib/recording';
 import Editor from '@monaco-editor/react';
 import { useCallback, useRef, useState } from 'react';
@@ -13,27 +14,50 @@ export default function Home() {
   const [code, setCode] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [currentInterviewId, setCurrentInterviewId] = useState<string>();
+  const [voiceMessages, setVoiceMessages] = useState<Array<{
+    message: string;
+    source: 'ai' | 'user';
+  }>>([]);
   const recorderRef = useRef<InterviewRecorder | null>(null);
+  const handleVoiceMessage = useCallback((message: { message: string; source: 'ai' | 'user' }) => {
+    console.log('handleVoiceMessage - received message:', message);
+    console.log('handleVoiceMessage - current voiceMessages:', voiceMessages);
+    setVoiceMessages(prev => {
+      console.log('handleVoiceMessage - updating with:', [...prev, message]);
+      return [...prev, message];
+    });
+  }, [voiceMessages]);
 
   const startRecording = useCallback(async () => {
     try {
-          // Create new interview session
-    const response = await fetch('/api/interviews', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({
-         language: selectedLanguage,
-         problemDescription: "Sample problem description...",
-         status: 'active',
-       }),
-     });
+      // Create new interview session
+      const response = await fetch('/api/interviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: selectedLanguage,
+          problemDescription: "Sample problem description...",
+          status: 'active',
+        }),
+      });
 
-     if (!response.ok) {
-       throw new Error('Failed to create interview session');
+      if (!response.ok) {
+        throw new Error('Failed to create interview session');
+      }
+
+      const { id: interviewId } = await response.json();
+      setCurrentInterviewId(interviewId);
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
     }
+  }, [selectedLanguage]);
 
-     const { id: interviewId } = await response.json();
-     setCurrentInterviewId(interviewId);
+  const startScreenRecording = useCallback(async () => {
+    try {
+      if (!currentInterviewId) {
+        throw new Error('No active interview session');
+      }
       recorderRef.current = new InterviewRecorder({
         onError: (error) => {
           console.error('Recording error:', error);
@@ -41,19 +65,16 @@ export default function Home() {
         },
       });
       await recorderRef.current.startRecording();
-      setIsRecording(true);
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      console.error('Failed to start screen recording:', error);
     }
-  }, [selectedLanguage]);
+  }, [currentInterviewId]);
 
-  const stopRecording = useCallback(async () => {
-    if (!recorderRef.current|| !currentInterviewId) return;
+  const stopScreenRecording = useCallback(async () => {
+    if (!recorderRef.current || !currentInterviewId) return;
 
     try {
       const recording = await recorderRef.current.stopRecording();
-      setIsRecording(false);
-
 
       // Upload recording
       const formData = new FormData();
@@ -68,24 +89,33 @@ export default function Home() {
       if (!response.ok) {
         throw new Error('Failed to upload recording');
       }
+    } catch (error) {
+      console.error('Failed to stop screen recording:', error);
+    }
+  }, [currentInterviewId]);
 
-      // const result = await response.json();
-      // console.log('Recording uploaded:', result);
+  const stopRecording = useCallback(async () => {
+    if (!currentInterviewId) return;
 
-
-           // Update interview with final code
-     await fetch(`/api/interviews/${currentInterviewId}`, {
-      method: 'PATCH',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({
-         code,
-         status: 'completed',
-       }),
-     });
+    try {
+      setIsRecording(false);
+      // Stop screen recording if it's running
+      if (recorderRef.current) {
+        await stopScreenRecording();
+      }
+      // Update interview status to completed
+      await fetch(`/api/interviews/${currentInterviewId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          status: 'completed',
+        }),
+      });
     } catch (error) {
       console.error('Failed to stop recording:', error);
     }
-  }, [currentInterviewId, code]);
+  }, [currentInterviewId, code, stopScreenRecording]);
 
   return (
     <main className="w-full h-screen text-white bg-gray-900">
@@ -102,21 +132,42 @@ export default function Home() {
         <div className="h-full p-6 overflow-auto">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">Problem Description</h1>
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`rounded px-4 py-2 font-semibold ${isRecording
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-green-600 hover:bg-green-700'
-                }`}
-            >
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
-            </button>
-          </div>
-          <div className="flex flex-col h-full">
-          <div className="prose prose-invert">
-            <p>Sample problem description...</p>
+            <div className="flex gap-2">
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                className={`rounded px-4 py-2 font-semibold ${isRecording
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-green-600 hover:bg-green-700'
+                  }`}
+              >
+                {isRecording ? 'Stop Interview' : 'Start Interview'}
+              </button>
+              {currentInterviewId && (
+                <button
+                  onClick={recorderRef.current ? stopScreenRecording : startScreenRecording}
+                  className={`rounded px-4 py-2 font-semibold ${recorderRef.current
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                >
+                  {recorderRef.current ? 'Stop Recording' : 'Start Recording'}
+                </button>
+              )}
             </div>
-            <ChatView interviewId={currentInterviewId} />
+          </div>
+          <div className="flex flex-col h-full gap-4">
+            <div className="prose prose-invert flex-shrink-0">
+              <p>Sample problem description...</p>
+            </div>
+            <div className="flex-shrink-0">
+              <Conversation onMessage={handleVoiceMessage} />
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <ChatView
+                interviewId={currentInterviewId}
+                voiceMessages={voiceMessages}
+              />
+            </div>
           </div>
         </div>
 
