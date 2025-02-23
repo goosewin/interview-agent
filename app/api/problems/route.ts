@@ -56,4 +56,4 @@ export async function POST(req: Request) {
     console.error('Failed to create problem:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
-} 
+}

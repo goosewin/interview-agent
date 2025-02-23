@@ -86,7 +86,9 @@ export default function InterviewsPage() {
     return date.toLocaleDateString();
   }
 
-  function getStatusVariant(status: string): 'default' | 'destructive' | 'outline' | 'secondary' | 'destructive' {
+  function getStatusVariant(
+    status: string
+  ): 'default' | 'destructive' | 'outline' | 'secondary' | 'destructive' {
     switch (status) {
       case 'not_started':
         return 'default';
@@ -195,8 +197,8 @@ export default function InterviewsPage() {
           <DialogHeader>
             <DialogTitle>Cancel Interview</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel the interview with {selectedInterview?.candidateName} on{' '}
-              {selectedInterview && formatDate(selectedInterview.scheduledFor)}?
+              Are you sure you want to cancel the interview with {selectedInterview?.candidateName}{' '}
+              on {selectedInterview && formatDate(selectedInterview.scheduledFor)}?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

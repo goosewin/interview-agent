@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     let problemId = validatedData.problemId;
     if (!problemId) {
       const problems = await getProblems(user.id);
-      const matchingProblems = problems.filter(p => p.difficulty === validatedData.difficulty);
+      const matchingProblems = problems.filter((p) => p.difficulty === validatedData.difficulty);
 
       if (matchingProblems.length === 0) {
         return NextResponse.json(

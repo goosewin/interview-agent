@@ -3,7 +3,11 @@
 import { useConversation } from '@11labs/react';
 import { useCallback } from 'react';
 
-export function Conversation({ onMessage }: { onMessage: (message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => void }) {
+export function Conversation({
+  onMessage,
+}: {
+  onMessage: (message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => void;
+}) {
   const conversation = useConversation({
     onConnect: () => console.log('Connected'),
     onDisconnect: () => {

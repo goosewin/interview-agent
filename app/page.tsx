@@ -41,9 +41,9 @@ export default function Home() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-4xl p-4 space-y-4">
-        <div className="flex items-center justify-between mb-8">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="w-full max-w-4xl space-y-4 p-4">
+        <div className="mb-8 flex items-center justify-between">
           <h1 className="text-4xl font-bold">AI Technical Interviewer</h1>
           <SignedIn>
             <UserButton afterSignOutUrl="/" />

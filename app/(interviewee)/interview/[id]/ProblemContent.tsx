@@ -8,4 +8,4 @@ interface ProblemContentProps {
 
 export default function ProblemContent({ content }: ProblemContentProps) {
   return <MDXRemote source={content} />;
-} 
+}

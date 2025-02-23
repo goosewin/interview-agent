@@ -144,4 +144,4 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
       )}
     </div>
   );
-} 
+}

@@ -152,7 +152,9 @@ export default function EditProblem({ params }: { params: Promise<{ id: string }
                 <FormControl>
                   <Textarea {...field} className="min-h-[200px]" />
                 </FormControl>
-                <FormDescription>Enter the description of the problem using markdown.</FormDescription>
+                <FormDescription>
+                  Enter the description of the problem using markdown.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

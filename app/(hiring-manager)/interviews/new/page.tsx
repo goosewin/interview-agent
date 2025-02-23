@@ -88,7 +88,7 @@ export default function NewInterview() {
 
         const [candidatesRes, problemsRes] = await Promise.all([
           fetch('/api/candidates'),
-          fetch('/api/problems')
+          fetch('/api/problems'),
         ]);
 
         if (!candidatesRes.ok) throw new Error('Failed to fetch candidates');
@@ -269,7 +269,9 @@ export default function NewInterview() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={RANDOM_PROBLEM}>Random problem of selected difficulty</SelectItem>
+                    <SelectItem value={RANDOM_PROBLEM}>
+                      Random problem of selected difficulty
+                    </SelectItem>
                     {filteredProblems.map((problem) => (
                       <SelectItem key={problem.id} value={problem.id}>
                         {problem.title}
@@ -278,7 +280,8 @@ export default function NewInterview() {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Optionally select a specific problem, or choose random to automatically assign one of the selected difficulty.
+                  Optionally select a specific problem, or choose random to automatically assign one
+                  of the selected difficulty.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

@@ -211,11 +211,7 @@ export async function stopRecording(interviewId: string, recordingUrl: string) {
 }
 
 export async function getProblems(userId: string) {
-  return db
-    .select()
-    .from(problems)
-    .where(eq(problems.userId, userId))
-    .orderBy(problems.createdAt);
+  return db.select().from(problems).where(eq(problems.userId, userId)).orderBy(problems.createdAt);
 }
 
 export async function getProblem(id: string, userId: string) {

@@ -129,7 +129,8 @@ export default function NewProblem() {
                   />
                 </FormControl>
                 <FormDescription>
-                  Write the problem description using MDX format. You can use markdown and custom components.
+                  Write the problem description using MDX format. You can use markdown and custom
+                  components.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -195,7 +196,9 @@ export default function NewProblem() {
                 <FormControl>
                   <Textarea {...field} className="font-mono" />
                 </FormControl>
-                <FormDescription>List any constraints or limitations for the problem.</FormDescription>
+                <FormDescription>
+                  List any constraints or limitations for the problem.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -209,8 +212,9 @@ export default function NewProblem() {
       <div className="mt-8 rounded-lg border border-muted p-4">
         <h2 className="text-lg font-semibold">Important Note</h2>
         <p className="mt-2 text-muted-foreground">
-          Problem content should be added as an MDX file in the <code>problems</code> directory with the same name as the slug.
-          For example, if the slug is &quot;two-sum&quot;, create a file named <code>two-sum.mdx</code>.
+          Problem content should be added as an MDX file in the <code>problems</code> directory with
+          the same name as the slug. For example, if the slug is &quot;two-sum&quot;, create a file
+          named <code>two-sum.mdx</code>.
         </p>
       </div>
     </div>

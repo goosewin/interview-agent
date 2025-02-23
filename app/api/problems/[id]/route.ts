@@ -4,12 +4,18 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const updateProblemSchema = z.object({
-  title: z.string().min(2, {
-    message: 'Title must be at least 2 characters.',
-  }).optional(),
-  description: z.string().min(10, {
-    message: 'Description must be at least 10 characters.',
-  }).optional(),
+  title: z
+    .string()
+    .min(2, {
+      message: 'Title must be at least 2 characters.',
+    })
+    .optional(),
+  description: z
+    .string()
+    .min(10, {
+      message: 'Description must be at least 10 characters.',
+    })
+    .optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   sampleInput: z.string().optional(),
   sampleOutput: z.string().optional(),
@@ -81,4 +87,4 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
     console.error('Failed to delete problem:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
-} 
+}

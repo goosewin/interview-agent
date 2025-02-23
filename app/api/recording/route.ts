@@ -28,10 +28,7 @@ export async function POST(req: Request) {
     }
 
     if (!interviewId || !action) {
-      return NextResponse.json(
-        { error: 'InterviewId and action are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'InterviewId and action are required' }, { status: 400 });
     }
 
     if (action === 'start') {
