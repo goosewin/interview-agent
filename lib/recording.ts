@@ -17,15 +17,39 @@ export class InterviewRecorder {
 
   async startRecording() {
     try {
-      // Get both screen and audio streams
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 30 },
-        },
-        audio: true,
-      });
+      let screenStream: MediaStream;
+
+      while (true) {
+        try {
+          // Get screen stream with specific display surface
+          screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: {
+              displaySurface: 'monitor', // Enforce full screen
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              frameRate: { ideal: 30 },
+            },
+            audio: true,
+          });
+
+          // Check if user selected a monitor/screen
+          const track = screenStream.getVideoTracks()[0];
+          const settings = track.getSettings();
+          if (settings.displaySurface === 'monitor') {
+            break; // Valid selection, proceed
+          }
+
+          // Invalid selection, stop tracks and retry
+          screenStream.getTracks().forEach((track) => track.stop());
+          throw new Error('Please select your entire screen for sharing');
+        } catch (error) {
+          if ((error as Error).name === 'NotAllowedError') {
+            throw error; // User denied permission, don't retry
+          }
+          // For other errors or invalid selections, continue loop to retry
+          continue;
+        }
+      }
 
       const audioStream = await navigator.mediaDevices.getUserMedia({
         audio: true,

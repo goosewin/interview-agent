@@ -73,6 +73,12 @@ export default function Interview() {
     }>
   >([]);
 
+  // Keep code in sync
+  const codeRef = useRef(code);
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
+
   // Preflight state
   const [preflightComplete, setPreflightComplete] = useState(false);
   const [cameraPermission, setCameraPermission] = useState(false);
@@ -89,6 +95,16 @@ export default function Interview() {
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
 
   const recorderRef = useRef<InterviewRecorder | null>(null);
+
+  const [isInterviewStarted, setIsInterviewStarted] = useState(false);
+
+  const interviewIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (interview?.id) {
+      interviewIdRef.current = interview.id;
+    }
+  }, [interview?.id]);
 
   useEffect(() => {
     async function fetchInterview() {
@@ -212,6 +228,7 @@ export default function Interview() {
       return;
     }
     setPreflightComplete(true);
+    setIsInterviewStarted(true);
   }
 
   const formatTime = (seconds: number) => {
@@ -260,15 +277,33 @@ export default function Interview() {
   }, [preflightComplete, timeLeft]);
 
   const handleVoiceMessage = useCallback(
-    (message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => {
+    async (message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => {
       if (message.clear) {
         setVoiceMessages([]);
         return;
       }
 
       setVoiceMessages((prev) => [...prev, { message: message.message, source: message.source }]);
+
+      // Persist message to database
+      const currentInterviewId = interviewIdRef.current;
+      if (currentInterviewId) {
+        try {
+          await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              interviewId: currentInterviewId,
+              role: message.source === 'ai' ? 'assistant' : 'user',
+              content: message.message,
+            }),
+          });
+        } catch (error) {
+          console.error('Failed to persist message:', error);
+        }
+      }
     },
-    []
+    [] // No dependencies needed
   );
 
   const startRecording = useCallback(async () => {
@@ -327,32 +362,33 @@ export default function Interview() {
         body: formData,
       });
 
-      // Update interview status
+      // Use the code from the ref instead of the state value
       await fetch(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'completed',
-          code,
+          code: codeRef.current,
         }),
       });
 
-      // Clear messages when stopping session
       setVoiceMessages([]);
     } catch (error) {
       console.error('Failed to stop recording:', error);
     }
-  }, [interview, code]);
+  }, [interview]);
 
+  // Consolidated effect for starting/stopping interview
   useEffect(() => {
-    if (id) {
+    if (isInterviewStarted && interview) {
       startRecording();
     }
     return () => {
-      stopRecording();
+      if (isInterviewStarted) {
+        stopRecording();
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isInterviewStarted, interview, startRecording, stopRecording]);
 
   if (isLoading) {
     return (
@@ -563,7 +599,7 @@ export default function Interview() {
 
             {/* Voice Chat */}
             <Card className="p-4">
-              <Conversation onMessage={handleVoiceMessage} />
+              <Conversation onMessage={handleVoiceMessage} autoStart={isInterviewStarted} />
               <div className="mt-4 h-48 overflow-y-auto">
                 <ChatView interviewId={interview.id} voiceMessages={voiceMessages} />
               </div>

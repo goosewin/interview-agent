@@ -1,70 +1,105 @@
 'use client';
 
 import { useConversation } from '@11labs/react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function Conversation({
   onMessage,
+  autoStart = false,
 }: {
   onMessage: (message: { message: string; source: 'ai' | 'user'; clear?: boolean }) => void;
+  autoStart?: boolean;
 }) {
-  const conversation = useConversation({
-    onConnect: () => console.log('Connected'),
-    onDisconnect: () => {
-      console.log('Disconnected');
-      // Clear messages when conversation ends
-      onMessage({ message: '', source: 'ai', clear: true });
-    },
-    onMessage: (message: unknown) => {
-      console.log('Message:', message);
-      onMessage(message as { message: string; source: 'ai' | 'user' });
-    },
-    onError: (error: Error) => console.error('Error:', error),
-  });
+  const isActive = useRef(false);
+  const messageHandlerRef = useRef(onMessage);
+  const [status, setStatus] = useState<string>('disconnected');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const initRef = useRef(false);
+
+  // Keep message handler up to date
+  useEffect(() => {
+    messageHandlerRef.current = onMessage;
+  }, [onMessage]);
+
+  const conversationRef = useRef(
+    useConversation({
+      onConnect: useCallback(() => {
+        if (!initRef.current) return;
+        console.log('Connected');
+        isActive.current = true;
+        setStatus('connected');
+      }, []),
+      onDisconnect: useCallback(() => {
+        if (!initRef.current) return;
+        console.log('Disconnected');
+        isActive.current = false;
+        setStatus('disconnected');
+        messageHandlerRef.current({ message: '', source: 'ai', clear: true });
+      }, []),
+      onMessage: useCallback((message: unknown) => {
+        if (!initRef.current) return;
+        const typedMessage = message as {
+          message: string;
+          source: 'ai' | 'user';
+          speaking?: boolean;
+        };
+        messageHandlerRef.current(typedMessage);
+        setIsSpeaking(!!typedMessage.speaking);
+      }, []),
+      onError: useCallback((error: Error) => {
+        if (!initRef.current) return;
+        console.error('Error:', error);
+        isActive.current = false;
+        setStatus('error');
+      }, []),
+    })
+  );
+  const conversation = conversationRef.current;
 
   const startConversation = useCallback(async () => {
+    if (isActive.current) return;
     try {
-      // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Clear messages when starting new conversation
-      onMessage({ message: '', source: 'ai', clear: true });
-
-      // Start the conversation with your agent
+      messageHandlerRef.current({ message: '', source: 'ai', clear: true });
+      initRef.current = true;
       await conversation.startSession({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
       });
     } catch (error) {
       console.error('Failed to start conversation:', error);
+      isActive.current = false;
+      setStatus('error');
     }
-  }, [conversation, onMessage]);
-
-  const stopConversation = useCallback(async () => {
-    await conversation.endSession();
   }, [conversation]);
 
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex gap-2">
-        <button
-          onClick={startConversation}
-          disabled={conversation.status === 'connected'}
-          className="rounded bg-blue-500 px-4 py-2 text-white disabled:bg-gray-300"
-        >
-          Start Conversation
-        </button>
-        <button
-          onClick={stopConversation}
-          disabled={conversation.status !== 'connected'}
-          className="rounded bg-red-500 px-4 py-2 text-white disabled:bg-gray-300"
-        >
-          Stop Conversation
-        </button>
-      </div>
+  const stopConversation = useCallback(async () => {
+    if (!isActive.current) return;
+    try {
+      await conversation.endSession();
+    } finally {
+      isActive.current = false;
+      initRef.current = false;
+      setStatus('disconnected');
+    }
+  }, [conversation]);
 
+  // Handle auto-start and cleanup
+  useEffect(() => {
+    if (autoStart && !isActive.current) {
+      startConversation();
+    }
+    return () => {
+      // Stop the session only on component unmount
+      stopConversation();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center">
       <div className="flex flex-col items-center">
-        <p>Status: {conversation.status}</p>
-        <p>Agent is {conversation.isSpeaking ? 'speaking' : 'listening'}</p>
+        <p>Status: {status}</p>
+        <p>Agent is {isSpeaking ? 'speaking' : 'listening'}</p>
       </div>
     </div>
   );

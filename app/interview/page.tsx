@@ -1,5 +1,6 @@
 'use client';
 
+import Editor from '@/components/editor';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Editor, type OnMount } from '@monaco-editor/react';
+import { type OnMount } from '@monaco-editor/react';
 import { Play } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
@@ -29,9 +30,10 @@ export default function InterviewPage() {
   const [timeLeft, setTimeLeft] = useState(45 * 60); // 45 minutes in seconds
   const [isRunning, setIsRunning] = useState(false);
   const [language, setLanguage] = useState('javascript');
-  const [code, setCode] = useState(
+  const [code /* setCode */] = useState(
     `function solve(input) {\n  // Your code here\n}\n\n// Example test case\nconsole.log(solve([1, 2, 3]));`
   );
+
   const [output, setOutput] = useState('');
 
   useEffect(() => {
@@ -194,20 +196,7 @@ export default function InterviewPage() {
             <ResizablePanelGroup direction="vertical" className="flex-1 rounded-lg border">
               <ResizablePanel defaultSize={70}>
                 <div className="h-full bg-zinc-950 p-4">
-                  <Editor
-                    height="100%"
-                    defaultLanguage="javascript"
-                    language={language}
-                    value={code}
-                    onChange={(value) => setCode(value || '')}
-                    theme="vs-dark"
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      automaticLayout: true,
-                    }}
-                    onMount={handleEditorDidMount}
-                  />
+                  <Editor language={language} initialCode={code} onMount={handleEditorDidMount} />
                 </div>
               </ResizablePanel>
               <ResizableHandle withHandle />

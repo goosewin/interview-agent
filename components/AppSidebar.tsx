@@ -23,7 +23,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/dashboard">
-                <Home className="w-4 h-4 mr-2" />
+                <Home className="mr-2 h-4 w-4" />
                 <span>Dashboard</span>
               </Link>
             </SidebarMenuButton>
@@ -31,7 +31,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/candidates">
-                <Users className="w-4 h-4 mr-2" />
+                <Users className="mr-2 h-4 w-4" />
                 <span>Candidates</span>
               </Link>
             </SidebarMenuButton>
@@ -39,7 +39,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/interviews">
-                <Calendar className="w-4 h-4 mr-2" />
+                <Calendar className="mr-2 h-4 w-4" />
                 <span>Interviews</span>
               </Link>
             </SidebarMenuButton>
@@ -47,7 +47,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/problems">
-                <FileCode className="w-4 h-4 mr-2" />
+                <FileCode className="mr-2 h-4 w-4" />
                 <span>Problems</span>
               </Link>
             </SidebarMenuButton>
@@ -56,7 +56,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <Link href="/" className="flex flex-row items-center gap-2 px-4 py-2">
-          <Home className="w-4 h-4" />
+          <Home className="h-4 w-4" />
           <span>Home</span>
         </Link>
       </SidebarFooter>
