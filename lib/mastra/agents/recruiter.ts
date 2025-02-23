@@ -1,7 +1,8 @@
 import { db } from '@/db';
 import { candidates, evaluations, interviews } from '@/db/schema';
 import { openai } from '@ai-sdk/openai';
-import { Agent, createTool } from '@mastra/core';
+import { createTool } from '@mastra/core';
+import { Agent } from '@mastra/core/agent';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {

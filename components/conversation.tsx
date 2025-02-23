@@ -30,7 +30,7 @@ export type CodeUpdateData = {
 type ConversationProps = {
   onMessage: (message: Message) => void;
   autoStart?: boolean;
-  conversationRef?: React.RefObject<ReturnType<typeof useConversation>>;
+  conversationRef?: React.RefObject<ReturnType<typeof useConversation> | null>;
   candidateName?: string;
   interviewId: string;
   problemDescription?: string;

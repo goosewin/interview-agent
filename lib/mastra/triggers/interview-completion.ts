@@ -18,8 +18,10 @@ export async function handleInterviewCompletion(interviewId: string) {
   }
 
   // Start the evaluation workflow
-  await mastra.workflows.interviewEvaluationWorkflow.trigger({
-    interviewId,
+  await mastra.getWorkflow('interviewEvaluationWorkflow').execute({
+    triggerData: {
+      interviewId,
+    },
   });
 
   return { success: true };

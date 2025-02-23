@@ -2,7 +2,8 @@ import { generateEvaluationReport } from '@/lib/evaluation';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {

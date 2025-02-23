@@ -1,6 +1,7 @@
-import { Step, Workflow, type WorkflowContext } from '@mastra/core';
+import { Step, type WorkflowContext } from '@mastra/core';
+import { Workflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { mastra } from '../index';
+import { recruiterAgent } from '../agents/recruiter';
 import {
   COMMUNICATION_EVALUATION_PROMPT,
   CommunicationEvaluationSchema,
@@ -10,7 +11,7 @@ import {
   TechnicalEvaluationSchema,
 } from '../prompts/recruiter';
 
-const recruiter = mastra.getAgent('recruiterAgent');
+const recruiter = recruiterAgent;
 
 const InterviewCompletionInputSchema = z.object({
   interviewId: z.string(),
@@ -57,7 +58,7 @@ const gatherInterviewData = new Step({
     const { interviewId } = context;
 
     // Get interview data
-    const interviewData = (await recruiter.tools.getInterviewData.execute({
+    const interviewData = (await recruiterAgent.tools.getInterviewData.execute({
       context: {
         interviewId,
         steps: context.steps,
@@ -69,7 +70,7 @@ const gatherInterviewData = new Step({
     })) as InterviewData;
 
     // Get candidate data
-    const candidateData = (await recruiter.tools.getCandidateData.execute({
+    const candidateData = (await recruiterAgent.tools.getCandidateData.execute({
       context: {
         candidateId: interviewData.candidateId,
         steps: context.steps,
@@ -188,7 +189,7 @@ const makeHiringDecision = new Step({
     });
 
     // Store the complete evaluation
-    await recruiter.tools.storeEvaluation.execute({
+    await recruiterAgent.tools.storeEvaluation.execute({
       context: {
         interviewId,
         candidateId,

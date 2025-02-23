@@ -1139,6 +1139,7 @@ export default function Interview() {
                   conversationRef={conversationRef}
                   candidateName={interview.candidateName}
                   interviewId={interview.id}
+                  problemDescription={interview.problemDescription}
                 />
                 <Accordion type="single" collapsible>
                   <AccordionItem value="transcript">

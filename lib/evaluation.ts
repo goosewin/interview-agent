@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-import { posthog } from './posthog';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -46,7 +45,7 @@ interface EvaluationReport extends HiringDecision {
 async function evaluateTechnicalSkills(
   input: Pick<EvaluationInput, 'problemStatement' | 'finalSolution'>
 ): Promise<TechnicalEvaluation> {
-  const startTime = Date.now();
+  // const startTime = Date.now();
   const messages = [
     {
       role: 'system' as const,
@@ -80,36 +79,8 @@ async function evaluateTechnicalSkills(
 
     const result = JSON.parse(response.choices[0].message.content || '{}') as TechnicalEvaluation;
 
-    posthog.capture({
-      distinctId: 'system',
-      event: 'llm_completion',
-      properties: {
-        model: 'gpt-4-turbo-preview',
-        evaluation_type: 'technical',
-        code_length: input.finalSolution.length,
-        latency_ms: Date.now() - startTime,
-        prompt_tokens: response.usage?.prompt_tokens,
-        completion_tokens: response.usage?.completion_tokens,
-        total_tokens: response.usage?.total_tokens,
-        technical_score: result.technicalScore,
-        success: true,
-      },
-    });
-
     return result;
   } catch (error) {
-    posthog.capture({
-      distinctId: 'system',
-      event: 'llm_completion',
-      properties: {
-        model: 'gpt-4-turbo-preview',
-        evaluation_type: 'technical',
-        code_length: input.finalSolution.length,
-        latency_ms: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        success: false,
-      },
-    });
     throw error;
   }
 }
@@ -117,7 +88,7 @@ async function evaluateTechnicalSkills(
 async function evaluateCommunication(
   input: Pick<EvaluationInput, 'transcript'>
 ): Promise<CommunicationEvaluation> {
-  const startTime = Date.now();
+  // const startTime = Date.now();
   const messages = [
     {
       role: 'system' as const,
@@ -153,36 +124,8 @@ async function evaluateCommunication(
       response.choices[0].message.content || '{}'
     ) as CommunicationEvaluation;
 
-    posthog.capture({
-      distinctId: 'system',
-      event: 'llm_completion',
-      properties: {
-        model: 'gpt-4-turbo-preview',
-        evaluation_type: 'communication',
-        transcript_length: input.transcript.length,
-        latency_ms: Date.now() - startTime,
-        prompt_tokens: response.usage?.prompt_tokens,
-        completion_tokens: response.usage?.completion_tokens,
-        total_tokens: response.usage?.total_tokens,
-        communication_score: result.communicationScore,
-        success: true,
-      },
-    });
-
     return result;
   } catch (error) {
-    posthog.capture({
-      distinctId: 'system',
-      event: 'llm_completion',
-      properties: {
-        model: 'gpt-4-turbo-preview',
-        evaluation_type: 'communication',
-        transcript_length: input.transcript.length,
-        latency_ms: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        success: false,
-      },
-    });
     throw error;
   }
 }
@@ -191,7 +134,7 @@ async function makeHiringDecision(
   technicalEvaluation: TechnicalEvaluation,
   communicationEvaluation: CommunicationEvaluation
 ): Promise<HiringDecision> {
-  const startTime = Date.now();
+  // const startTime = Date.now();
   const messages = [
     {
       role: 'system' as const,
@@ -220,37 +163,8 @@ async function makeHiringDecision(
 
     const result = JSON.parse(response.choices[0].message.content || '{}') as HiringDecision;
 
-    posthog.capture({
-      distinctId: 'system',
-      event: 'llm_completion',
-      properties: {
-        model: 'gpt-4-turbo-preview',
-        evaluation_type: 'hiring_decision',
-        latency_ms: Date.now() - startTime,
-        prompt_tokens: response.usage?.prompt_tokens,
-        completion_tokens: response.usage?.completion_tokens,
-        total_tokens: response.usage?.total_tokens,
-        technical_score: technicalEvaluation.technicalScore,
-        communication_score: communicationEvaluation.communicationScore,
-        recommendation: result.recommendation,
-        overall_score: result.overallScore,
-        success: true,
-      },
-    });
-
     return result;
   } catch (error) {
-    posthog.capture({
-      distinctId: 'system',
-      event: 'llm_completion',
-      properties: {
-        model: 'gpt-4-turbo-preview',
-        evaluation_type: 'hiring_decision',
-        latency_ms: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        success: false,
-      },
-    });
     throw error;
   }
 }
