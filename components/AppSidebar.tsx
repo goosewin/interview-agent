@@ -1,6 +1,7 @@
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -22,7 +23,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/dashboard">
-                <Home className="mr-2 h-4 w-4" />
+                <Home className="w-4 h-4 mr-2" />
                 <span>Dashboard</span>
               </Link>
             </SidebarMenuButton>
@@ -30,7 +31,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/candidates">
-                <Users className="mr-2 h-4 w-4" />
+                <Users className="w-4 h-4 mr-2" />
                 <span>Candidates</span>
               </Link>
             </SidebarMenuButton>
@@ -38,7 +39,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/interviews">
-                <Calendar className="mr-2 h-4 w-4" />
+                <Calendar className="w-4 h-4 mr-2" />
                 <span>Interviews</span>
               </Link>
             </SidebarMenuButton>
@@ -46,13 +47,19 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/problems">
-                <FileCode className="mr-2 h-4 w-4" />
+                <FileCode className="w-4 h-4 mr-2" />
                 <span>Problems</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
+      <SidebarFooter>
+        <Link href="/" className="flex flex-row items-center gap-2 px-4 py-2">
+          <Home className="w-4 h-4" />
+          <span>Home</span>
+        </Link>
+      </SidebarFooter>
     </Sidebar>
   );
 }
