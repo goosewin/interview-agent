@@ -39,11 +39,11 @@ export async function POST(request: Request) {
     });
 
     console.log('Attempting to send email:', {
-        from: 'onboarding@resend.dev' ,
+      from: 'onboarding@resend.dev',
       to: candidate.email,
-      apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 5)
+      apiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 5),
     });
-    
+
     const result = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: candidate.email,
@@ -68,18 +68,20 @@ export async function POST(request: Request) {
 
     console.log('Resend API response:', result);
     return NextResponse.json({ success: true, result });
-
   } catch (error) {
     // Log the full error details
     console.error('Failed to send interview email:', {
       error,
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    
-    return NextResponse.json({ 
-      error: 'Failed to send interview email',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: 'Failed to send interview email',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }

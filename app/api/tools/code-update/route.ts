@@ -52,13 +52,16 @@ export async function GET(req: Request) {
 
     const startTime = interview.recordingStartedAt?.getTime() || Date.now();
 
-    return new Response(JSON.stringify({
-      language: interview.language || 'javascript',
-      code: interview.code || '',
-      timeInCallSecs: Math.floor((Date.now() - startTime) / 1000),
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        language: interview.language || 'javascript',
+        code: interview.code || '',
+        timeInCallSecs: Math.floor((Date.now() - startTime) / 1000),
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     console.error('Error getting code:', error);
     return new Response(JSON.stringify({ error: 'Failed to get code' }), {

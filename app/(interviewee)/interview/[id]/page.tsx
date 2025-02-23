@@ -907,7 +907,12 @@ export default function Interview() {
                 <Card className="p-4">
                   <div className="font-bold">AI Interviewer</div>
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                    <Image src="/interviewer.png" alt="AI Interviewer" fill className="object-cover" />
+                    <Image
+                      src="/interviewer.png"
+                      alt="AI Interviewer"
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                 </Card>
               </div>

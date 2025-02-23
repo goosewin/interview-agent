@@ -19,7 +19,7 @@ export async function sendInterviewEmail({
     candidateName,
     interviewDate,
     interviewId,
-    fromEmail: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+    fromEmail: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
   });
 
   try {

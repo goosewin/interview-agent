@@ -154,7 +154,7 @@ export default function NewInterview() {
           scheduledFor: `${values.date}T${values.time}`,
         }),
       });
-  
+
       if (!emailResponse.ok) {
         const errorData = await emailResponse.json();
         console.error('Failed to send interview email:', errorData);

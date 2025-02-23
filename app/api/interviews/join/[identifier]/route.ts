@@ -1,7 +1,10 @@
 import { getInterviewByIdentifier } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request, { params }: { params: Promise<{ identifier: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ identifier: string }> }
+) {
   try {
     const { identifier } = await params;
     if (!identifier) {
