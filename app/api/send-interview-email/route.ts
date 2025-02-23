@@ -7,10 +7,6 @@ if (!process.env.RESEND_API_KEY) {
   throw new Error('Missing RESEND_API_KEY environment variable');
 }
 
-if (!process.env.RESEND_FROM_EMAIL) {
-  throw new Error('Missing RESEND_FROM_EMAIL environment variable');
-}
-
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
@@ -23,9 +19,42 @@ export async function POST(request: Request) {
     const { identifier, candidateId, scheduledFor } = await request.json();
     console.log('Request payload:', { identifier, candidateId, scheduledFor });
 
+    if (!identifier || !candidateId || !scheduledFor) {
+      console.error('Missing required fields:', { identifier, candidateId, scheduledFor });
+      return NextResponse.json(
+        { 
+          error: 'Missing required fields',
+          details: {
+            identifier: !identifier ? 'Interview identifier is required' : null,
+            candidateId: !candidateId ? 'Candidate ID is required' : null,
+            scheduledFor: !scheduledFor ? 'Schedule time is required' : null,
+          }
+        },
+        { status: 400 }
+      );
+    }
+
     const candidate = await getCandidate(candidateId, userId);
     if (!candidate) {
-      return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
+      console.error('Candidate not found:', { candidateId, userId });
+      return NextResponse.json(
+        { 
+          error: 'Candidate not found',
+          details: { candidateId }
+        },
+        { status: 404 }
+      );
+    }
+
+    if (!candidate.email) {
+      console.error('Candidate email not found:', { candidateId, name: candidate.name });
+      return NextResponse.json(
+        { 
+          error: 'Candidate email not found',
+          details: { candidateId, name: candidate.name }
+        },
+        { status: 400 }
+      );
     }
 
     const formattedDate = new Date(scheduledFor).toLocaleString('en-US', {
@@ -49,8 +78,8 @@ export async function POST(request: Request) {
       to: candidate.email,
       subject: 'Your Technical Interview Has Been Scheduled',
       html: `
-        <h1>Hello ${candidate.name}!</h1>
-        <p>Your technical interview has been scheduled for:</p>
+        <p>Dear ${candidate.name},</p>
+        <p>We are pleased to inform you that your technical interview has been scheduled for:</p>
         <p><strong>${formattedDate}</strong></p>
         <p>Your interview ID is: <strong>${identifier}</strong></p>
         <p>Please join the interview at the scheduled time using this link:</p>

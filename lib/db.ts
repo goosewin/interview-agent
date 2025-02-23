@@ -186,9 +186,10 @@ export async function getInterviewByIdentifier(identifier: string) {
       recordingEndedAt: interviews.recordingEndedAt,
       recordingUrl: interviews.recordingUrl,
       duration: interviews.duration,
-      problemDescription: interviews.problemDescription,
-      language: interviews.language,
       code: interviews.code,
+      language: interviews.language,
+      problemDescription: interviews.problemDescription,
+      messages: interviews.messages,
     })
     .from(interviews)
     .leftJoin(candidates, eq(interviews.candidateId, candidates.id))

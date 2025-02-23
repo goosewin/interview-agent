@@ -1,6 +1,6 @@
 'use client';
 
-import AIInterviewer from '@/components/AIInterviewer';
+// import AIInterviewer from '@/components/AIInterviewer';
 import ChatView from '@/components/ChatView';
 import { Conversation } from '@/components/conversation';
 import {
@@ -27,6 +27,7 @@ import { useConversation } from '@11labs/react';
 import { Editor, type OnMount } from '@monaco-editor/react';
 import { Check, Loader2, Play, X } from 'lucide-react';
 import type { editor } from 'monaco-editor';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -84,7 +85,7 @@ export default function Interview() {
   const [voiceMessages, setVoiceMessages] = useState<
     Array<{ message: string; source: 'ai' | 'user' }>
   >([]);
-  const [currentAudioUrl, setCurrentAudioUrl] = useState<string>();
+  const [/* currentAudioUrl */, setCurrentAudioUrl] = useState<string>();
 
   // Keep code in sync with refs for immediate access
   const codeRef = useRef(code);
@@ -951,7 +952,7 @@ export default function Interview() {
                 className={cn(
                   'space-y-4',
                   (!selectedAudioDevice || !selectedPlaybackDevice) &&
-                    'pointer-events-none opacity-50'
+                  'pointer-events-none opacity-50'
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -1007,7 +1008,7 @@ export default function Interview() {
               className={cn(
                 'space-y-4',
                 (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) &&
-                  'pointer-events-none opacity-50'
+                'pointer-events-none opacity-50'
               )}
             >
               <div className="flex items-start space-x-3">
@@ -1094,25 +1095,30 @@ export default function Interview() {
             <div className="flex h-full flex-col gap-4 p-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* Camera View */}
-                <Card>
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-sm">{interview.candidateName}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </CardContent>
+                <Card className="p-4">
+                  <div className="text-sm font-bold truncate">{interview.candidateName || 'Candidate'}</div>
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
                 </Card>
 
-                {/* AI Profile */}
-                <AIInterviewer audioUrl={currentAudioUrl} />
+                <Card className="p-4">
+                  <div className="text-sm font-bold truncate">Melody</div>
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                    <Image
+                      src="/interviewer.png"
+                      alt="AI Interviewer"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </Card>
               </div>
 
               {/* Problem Description */}
