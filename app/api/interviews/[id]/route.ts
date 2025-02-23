@@ -13,9 +13,9 @@ const updateInterviewSchema = z.object({
   lastActiveAt: z.string().optional(),
 });
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
     const interview = await getInterview(id);
 
     if (!interview) {
