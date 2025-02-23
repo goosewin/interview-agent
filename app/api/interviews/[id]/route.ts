@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     // Use db.query to get all relations
     const interview = await db.query.interviews.findFirst({
-      where: isJoin ? undefined : eq(interviews.id, id),
+      where: isJoin ? eq(interviews.identifier, id) : eq(interviews.id, id),
       with: {
         candidate: true,
         evaluations: true,

@@ -207,12 +207,6 @@ export default function Interview() {
         }
         const data = await response.json();
 
-        // Redirect if interview is cancelled or abandoned
-        if (data.status === 'cancelled' || data.status === 'abandoned') {
-          router.push('/?error=Interview is no longer active');
-          return;
-        }
-
         setInterview(data);
         setProblemContent(data.problemDescription);
         if (data.code) setCode(data.code);
@@ -696,52 +690,14 @@ export default function Interview() {
   const checkInterviewStatus = useCallback(() => {
     if (!interview) return null;
 
-    const now = new Date();
-    const startTime = new Date(interview.scheduledStartTime);
-    const minutesUntilStart = Math.floor((startTime.getTime() - now.getTime()) / (1000 * 60));
-
-    if (interview.status === 'abandoned') {
-      return {
-        canJoin: false,
-        message: 'This interview has been abandoned due to inactivity.',
-      };
-    }
-
-    if (interview.status === 'completed') {
-      return {
-        canJoin: false,
-        message: 'This interview has been completed.',
-      };
-    }
-
-    if (interview.status === 'cancelled') {
-      return {
-        canJoin: false,
-        message: 'This interview has been cancelled.',
-      };
-    }
-
-    // Allow joining up to 30 minutes after scheduled time
-    if (minutesUntilStart < -30) {
-      return {
-        canJoin: false,
-        message: 'This interview has expired. Please contact support to reschedule.',
-      };
-    }
-
-    // Don't allow joining more than 10 minutes before scheduled time
-    if (minutesUntilStart > 10) {
-      return {
-        canJoin: false,
-        message: `This interview is scheduled to start in ${minutesUntilStart} minutes. Please return closer to the start time.`,
-      };
-    }
-
+    // Always allow joining for demo
     return {
       canJoin: true,
       message: null,
     };
   }, [interview]);
+
+  console.log(interview);
 
   // Handle disconnection and reconnection
   useEffect(() => {
