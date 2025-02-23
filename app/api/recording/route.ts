@@ -23,7 +23,10 @@ export async function POST(req: Request) {
 
       // Validate file type
       if (file && !file.type.startsWith('video/')) {
-        return NextResponse.json({ error: 'Invalid file type. Expected video file' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid file type. Expected video file' },
+          { status: 400 }
+        );
       }
     } else {
       return NextResponse.json(
@@ -60,8 +63,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...blob, interview });
   } catch (error) {
     console.error('Failed to handle recording:', error);
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Failed to handle recording'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to handle recording',
+      },
+      { status: 500 }
+    );
   }
 }

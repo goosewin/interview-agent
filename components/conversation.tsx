@@ -112,7 +112,7 @@ export function Conversation({
   }, [conversationRef]);
 
   const getSignedUrl = async (): Promise<string> => {
-    const response = await fetch("/api/get-signed-url");
+    const response = await fetch('/api/get-signed-url');
     if (!response.ok) {
       throw new Error(`Failed to get signed url: ${response.statusText}`);
     }

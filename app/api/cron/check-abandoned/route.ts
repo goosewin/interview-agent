@@ -17,10 +17,7 @@ export async function GET() {
         updatedAt: new Date(),
       })
       .where(
-        and(
-          eq(interviews.status, 'in_progress'),
-          lt(interviews.lastActiveAt, fiveMinutesAgo)
-        )
+        and(eq(interviews.status, 'in_progress'), lt(interviews.lastActiveAt, fiveMinutesAgo))
       );
 
     return NextResponse.json({ success: true });
@@ -28,4 +25,4 @@ export async function GET() {
     console.error('Failed to check for abandoned interviews:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-} 
+}

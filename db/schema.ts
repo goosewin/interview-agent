@@ -5,7 +5,7 @@ export const interviewStatusEnum = pgEnum('interview_status', [
   'in_progress',
   'completed',
   'cancelled',
-  'abandoned'
+  'abandoned',
 ]);
 
 export const candidates = pgTable('candidates', {

@@ -108,7 +108,7 @@ export async function getInterview(id: string) {
       code: interviews.code,
       language: interviews.language,
       problemDescription: interviews.problemDescription,
-      messages: interviews.messages
+      messages: interviews.messages,
     })
     .from(interviews)
     .leftJoin(candidates, eq(interviews.candidateId, candidates.id))

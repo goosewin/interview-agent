@@ -70,7 +70,9 @@ export default function Interview() {
   const [language, setLanguage] = useState('javascript');
   const [, /* isRecording */ setIsRecording] = useState(false);
   const voiceMessagesRef = useRef<Array<{ message: string; source: 'ai' | 'user' }>>([]);
-  const [voiceMessages, setVoiceMessages] = useState<Array<{ message: string; source: 'ai' | 'user' }>>([]);
+  const [voiceMessages, setVoiceMessages] = useState<
+    Array<{ message: string; source: 'ai' | 'user' }>
+  >([]);
 
   // Keep code in sync with refs for immediate access
   const codeRef = useRef(code);
@@ -99,7 +101,7 @@ export default function Interview() {
   const [playbackDevices, setPlaybackDevices] = useState<DeviceInfo[]>([]);
 
   // Audio destination for Eleven Labs
-  const [/* audioDestination */, setAudioDestination] = useState<AudioNode | null>(null);
+  const [, /* audioDestination */ setAudioDestination] = useState<AudioNode | null>(null);
   const conversationRef = useRef<ReturnType<typeof useConversation>>(null!);
 
   useEffect(() => {
@@ -109,7 +111,7 @@ export default function Interview() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, language }),
-    }).catch(error => {
+    }).catch((error) => {
       console.error('Failed to update code:', error);
     });
   }, [code, language]);
@@ -119,7 +121,12 @@ export default function Interview() {
   }, [voiceMessages]);
 
   const handleVoiceMessage = useCallback(
-    async (message: { message: string; source: 'ai' | 'user'; clear?: boolean; timeInCallSecs?: number }) => {
+    async (message: {
+      message: string;
+      source: 'ai' | 'user';
+      clear?: boolean;
+      timeInCallSecs?: number;
+    }) => {
       if (message.clear) {
         // Don't clear messages on disconnect/cleanup
         if (!message.source) {
@@ -130,7 +137,10 @@ export default function Interview() {
       }
 
       // Update state through ref to avoid re-renders
-      const newMessages = [...voiceMessagesRef.current, { message: message.message, source: message.source }];
+      const newMessages = [
+        ...voiceMessagesRef.current,
+        { message: message.message, source: message.source },
+      ];
       voiceMessagesRef.current = newMessages;
       setVoiceMessages(newMessages);
 
@@ -343,7 +353,7 @@ export default function Interview() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           interviewId: interview.id,
-          action: 'start'
+          action: 'start',
         }),
       });
 
@@ -371,7 +381,13 @@ export default function Interview() {
   }, [interview]);
 
   function handleStartInterview() {
-    if (!cameraPermission || !micPermission || !consentGiven || !dataConsent || !selectedPlaybackDevice) {
+    if (
+      !cameraPermission ||
+      !micPermission ||
+      !consentGiven ||
+      !dataConsent ||
+      !selectedPlaybackDevice
+    ) {
       toast.error('Please complete all checks and provide consent');
       return;
     }
@@ -493,7 +509,7 @@ export default function Interview() {
       if (isInterviewStarted) {
         try {
           // Add a small delay to ensure recording data is available
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
 
           // Save any pending messages before stopping
           const currentMessages = voiceMessagesRef.current;
@@ -582,14 +598,14 @@ export default function Interview() {
 
       // Stop media streams
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
 
       setIsInterviewStarted(false);
       toast.success('Interview completed successfully!');
 
       // Small delay to ensure user sees success message
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsSaving(false);
       router.push('/');
     } catch (error) {
@@ -681,10 +697,12 @@ export default function Interview() {
               </div>
 
               {/* Microphone Status */}
-              <div className={cn(
-                'space-y-4',
-                !selectedPlaybackDevice && 'pointer-events-none opacity-50'
-              )}>
+              <div
+                className={cn(
+                  'space-y-4',
+                  !selectedPlaybackDevice && 'pointer-events-none opacity-50'
+                )}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Microphone</h2>
@@ -715,10 +733,13 @@ export default function Interview() {
               </div>
 
               {/* Camera Status */}
-              <div className={cn(
-                'space-y-4',
-                (!selectedAudioDevice || !selectedPlaybackDevice) && 'pointer-events-none opacity-50'
-              )}>
+              <div
+                className={cn(
+                  'space-y-4',
+                  (!selectedAudioDevice || !selectedPlaybackDevice) &&
+                    'pointer-events-none opacity-50'
+                )}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Camera</h2>
@@ -768,10 +789,13 @@ export default function Interview() {
             </div>
 
             {/* Consent Checkboxes */}
-            <div className={cn(
-              'space-y-4',
-              (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) && 'pointer-events-none opacity-50'
-            )}>
+            <div
+              className={cn(
+                'space-y-4',
+                (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) &&
+                  'pointer-events-none opacity-50'
+              )}
+            >
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="consent"
@@ -922,9 +946,7 @@ export default function Interview() {
                   </SelectContent>
                 </Select>
                 <div className="ml-auto flex items-center gap-4">
-                  <div className="text-xl font-bold text-primary">
-                    {formatTime(timeLeft)}
-                  </div>
+                  <div className="text-xl font-bold text-primary">{formatTime(timeLeft)}</div>
                   <Button
                     variant="destructive"
                     size="lg"

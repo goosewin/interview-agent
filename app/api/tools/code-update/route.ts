@@ -27,4 +27,4 @@ export async function GET() {
     console.error('Error getting code:', error);
     return NextResponse.json({ error: 'Failed to get code' }, { status: 500 });
   }
-} 
+}

@@ -67,11 +67,13 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
 
         // Fetch messages from interview transcript
         if (interviewData.messages?.length > 0) {
-          const formattedMessages = interviewData.messages.map((msg: { role: string; message: string; time_in_call_secs: number }) => ({
-            role: msg.role === 'agent' ? 'assistant' : 'user',
-            content: msg.message,
-            timestamp: new Date(msg.time_in_call_secs * 1000).toISOString(),
-          }));
+          const formattedMessages = interviewData.messages.map(
+            (msg: { role: string; message: string; time_in_call_secs: number }) => ({
+              role: msg.role === 'agent' ? 'assistant' : 'user',
+              content: msg.message,
+              timestamp: new Date(msg.time_in_call_secs * 1000).toISOString(),
+            })
+          );
           setMessages(formattedMessages);
         }
       } catch (err) {
@@ -84,12 +86,12 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
   }, [id]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
   if (error || !interview) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <div className="flex h-screen flex-col items-center justify-center gap-4">
         <p className="text-destructive">{error || 'Interview not found'}</p>
         <Button onClick={() => router.push('/interviews')}>Back to Interviews</Button>
       </div>
@@ -97,18 +99,14 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="container p-8 mx-auto space-y-8">
+    <div className="container mx-auto space-y-8 p-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => router.push('/interviews')}
-            className="mr-4"
-          >
+          <Button variant="outline" onClick={() => router.push('/interviews')} className="mr-4">
             ← Back
           </Button>
-          <Avatar className="w-12 h-12">
+          <Avatar className="h-12 w-12">
             <AvatarFallback>{interview.candidateName[0]}</AvatarFallback>
           </Avatar>
           <div>
@@ -154,7 +152,7 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
           {interview.recordingUrl ? (
             <Card>
               <CardContent className="pt-6">
-                <div className="overflow-hidden border rounded-lg">
+                <div className="overflow-hidden rounded-lg border">
                   <video
                     controls
                     className="w-full"
@@ -164,10 +162,12 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
                     Your browser does not support the video tag.
                   </video>
                 </div>
-                <div className="grid gap-2 mt-4 text-sm text-muted-foreground">
+                <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
                   <div>
                     <strong>Started:</strong>{' '}
-                    {interview.recordingStartedAt ? formatDate(interview.recordingStartedAt) : 'N/A'}
+                    {interview.recordingStartedAt
+                      ? formatDate(interview.recordingStartedAt)
+                      : 'N/A'}
                   </div>
                   <div>
                     <strong>Ended:</strong>{' '}
@@ -194,20 +194,22 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
                     {messages.map((message, index) => (
                       <div
                         key={index}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
-                          }`}
+                        className={`flex ${
+                          message.role === 'user' ? 'justify-end' : 'justify-start'
+                        }`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-lg p-4 ${message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground'
-                            }`}
+                          className={`max-w-[80%] rounded-lg p-4 ${
+                            message.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
+                          }`}
                         >
                           <div className="mb-1 text-xs opacity-70">
                             {message.role === 'user' ? 'Candidate' : 'AI Interviewer'}
                           </div>
                           <p className="whitespace-pre-wrap">{message.content}</p>
-                          <div className="mt-1 text-xs text-right opacity-70">
+                          <div className="mt-1 text-right text-xs opacity-70">
                             {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
                           </div>
                         </div>
@@ -230,9 +232,7 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
               <CardTitle>Problem Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose-sm prose dark:prose-invert">
-                {interview.problemDescription}
-              </div>
+              <div className="prose-sm prose dark:prose-invert">{interview.problemDescription}</div>
             </CardContent>
           </Card>
 
@@ -242,7 +242,7 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
             </CardHeader>
             <CardContent>
               {interview.code ? (
-                <div className="border rounded-lg">
+                <div className="rounded-lg border">
                   <Editor
                     height="400px"
                     defaultLanguage={interview.language}
