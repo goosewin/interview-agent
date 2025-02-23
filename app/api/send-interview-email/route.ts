@@ -78,8 +78,8 @@ export async function POST(request: Request) {
       to: candidate.email,
       subject: 'Your Technical Interview Has Been Scheduled',
       html: `
-        <h1>Hello ${candidate.name}!</h1>
-        <p>Your technical interview has been scheduled for:</p>
+        <p>Dear ${candidate.name},</p>
+        <p>We are pleased to inform you that your technical interview has been scheduled for:</p>
         <p><strong>${formattedDate}</strong></p>
         <p>Your interview ID is: <strong>${identifier}</strong></p>
         <p>Please join the interview at the scheduled time using this link:</p>
