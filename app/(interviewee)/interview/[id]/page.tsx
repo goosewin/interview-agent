@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import {
@@ -86,7 +87,7 @@ export default function Interview() {
   const [voiceMessages, setVoiceMessages] = useState<
     Array<{ message: string; source: 'ai' | 'user' }>
   >([]);
-  const [/* currentAudioUrl */, setCurrentAudioUrl] = useState<string>();
+  const [, setCurrentAudioUrl] = useState<string>();
 
   // Keep code in sync with refs for immediate access
   const codeRef = useRef(code);
@@ -117,6 +118,9 @@ export default function Interview() {
   // Audio destination for Eleven Labs
   const [, /* audioDestination */ setAudioDestination] = useState<AudioNode | null>(null);
   const conversationRef = useRef<ReturnType<typeof useConversation>>(null!);
+
+  const [showCheatingWarning, setShowCheatingWarning] = useState(false);
+  const [cheatingAttempts, setCheatingAttempts] = useState(0);
 
   useEffect(() => {
     codeRef.current = code;
@@ -704,11 +708,28 @@ export default function Interview() {
     let abandonTimer: NodeJS.Timeout | null = null;
 
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === 'hidden' && isInterviewStarted) {
         // User left - start 5 minute timer
         const deadline = new Date(Date.now() + 5 * 60 * 1000);
         setReconnectDeadline(deadline);
         setIsReconnecting(true);
+        setShowCheatingWarning(true);
+        setCheatingAttempts(prev => prev + 1);
+
+        // Log cheating attempt
+        try {
+          await fetch('/api/interviews/' + identifier + '/cheating-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'tab_switch',
+              timestamp: new Date().toISOString(),
+              attemptNumber: cheatingAttempts + 1
+            }),
+          });
+        } catch (error) {
+          console.error('Failed to log cheating attempt:', error);
+        }
 
         // Set timer to mark as abandoned after 5 minutes
         abandonTimer = setTimeout(
@@ -743,7 +764,7 @@ export default function Interview() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (abandonTimer) clearTimeout(abandonTimer);
     };
-  }, [identifier, router, updateLastActive]);
+  }, [identifier, router, updateLastActive, isInterviewStarted, cheatingAttempts]);
 
   if (isLoading) {
     return (
@@ -1002,6 +1023,18 @@ export default function Interview() {
 
   return (
     <>
+      <Dialog open={showCheatingWarning} onOpenChange={setShowCheatingWarning}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Warning: Cheating Detected</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>You have left the interview tab. This action is considered a cheating attempt and will be recorded in your performance report.</p>
+            <p className="text-sm text-muted-foreground">Number of attempts: {cheatingAttempts}</p>
+            <p className="text-sm font-semibold text-destructive">Please return to the interview immediately and refrain from switching tabs or windows.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
       {isSaving && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="rounded-lg bg-card p-8 shadow-lg">
