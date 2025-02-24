@@ -118,7 +118,12 @@ export default function Interview() {
 
   // Audio destination for Eleven Labs
   const [, /* audioDestination */ setAudioDestination] = useState<AudioNode | null>(null);
-  const conversationRef = useRef<ReturnType<typeof useConversation>>(null!);
+  // Define an extended type for the conversation reference that includes our custom methods
+  type ExtendedConversation = ReturnType<typeof useConversation> & {
+    pause?: () => void;
+    resume?: () => void;
+  };
+  const conversationRef = useRef<ExtendedConversation>(null!);
 
   const [showCheatingWarning, setShowCheatingWarning] = useState(false);
   const [cheatingAttempts, setCheatingAttempts] = useState(0);
@@ -739,7 +744,18 @@ export default function Interview() {
         // User left - start 5 minute timer
         const deadline = new Date(Date.now() + 5 * 60 * 1000);
         setReconnectDeadline(deadline);
-        setIsReconnecting(true);
+
+        // Pause the conversation when tab is hidden
+        if (conversationRef.current) {
+          try {
+            conversationRef.current.pause?.();
+          } catch (error) {
+            console.error('Failed to pause conversation:', error);
+          }
+        }
+
+        // Don't set isReconnecting here, just show the warning
+        // This prevents the conversation from restarting when they return
         setShowCheatingWarning(true);
         setCheatingAttempts((prev) => prev + 1);
 
@@ -762,6 +778,9 @@ export default function Interview() {
         abandonTimer = setTimeout(
           async () => {
             try {
+              // Only set isReconnecting to true if they haven't returned after the timeout
+              setIsReconnecting(true);
+
               await fetch(`/api/interviews/${identifier}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -777,11 +796,23 @@ export default function Interview() {
           },
           5 * 60 * 1000
         );
-      } else {
+      } else if (document.visibilityState === 'visible') {
         // User returned
-        setIsReconnecting(false);
         setReconnectDeadline(null);
-        if (abandonTimer) clearTimeout(abandonTimer);
+
+        // Resume the conversation when tab is visible again
+        if (conversationRef.current) {
+          try {
+            conversationRef.current.resume?.();
+          } catch (error) {
+            console.error('Failed to resume conversation:', error);
+          }
+        }
+
+        if (abandonTimer) {
+          clearTimeout(abandonTimer);
+          abandonTimer = null;
+        }
         updateLastActive();
       }
     };
@@ -818,13 +849,26 @@ export default function Interview() {
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
 
+    // Instead of rendering a completely different UI, we'll show a modal
+    // This keeps the conversation component mounted
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-destructive">
-          You have {minutes}:{seconds.toString().padStart(2, '0')} minutes to reconnect before the
-          interview is marked as abandoned.
-        </p>
-        <p className="text-muted-foreground">Please return to the interview to continue.</p>
+      <div className="h-screen bg-background">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="rounded-lg bg-card p-8 shadow-lg">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-destructive">Interview Abandoned</h3>
+                <p className="text-muted-foreground">
+                  You were away for too long. The interview has been marked as abandoned.
+                  <br />
+                  You have {minutes}:{seconds.toString().padStart(2, '0')} minutes to reconnect before the
+                  session is permanently closed.
+                </p>
+                <Button onClick={() => router.push('/')}>Return Home</Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -930,7 +974,7 @@ export default function Interview() {
                 className={cn(
                   'space-y-4',
                   (!selectedAudioDevice || !selectedPlaybackDevice) &&
-                    'pointer-events-none opacity-50'
+                  'pointer-events-none opacity-50'
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -986,7 +1030,7 @@ export default function Interview() {
               className={cn(
                 'space-y-4',
                 (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) &&
-                  'pointer-events-none opacity-50'
+                'pointer-events-none opacity-50'
               )}
             >
               <div className="flex items-start space-x-3">
@@ -1131,6 +1175,7 @@ export default function Interview() {
               {/* Voice Chat */}
               <Card className="p-4">
                 <Conversation
+                  key={`conversation-${interview.id}`}
                   onMessage={handleVoiceMessage}
                   autoStart={isInterviewStarted}
                   conversationRef={conversationRef}

@@ -27,10 +27,16 @@ export type CodeUpdateData = {
   timeInCallSecs?: number;
 };
 
+// Define an extended conversation type that includes our custom methods
+export type ExtendedConversation = ReturnType<typeof useConversation> & {
+  pause?: () => void;
+  resume?: () => void;
+};
+
 type ConversationProps = {
   onMessage: (message: Message) => void;
   autoStart?: boolean;
-  conversationRef?: React.RefObject<ReturnType<typeof useConversation> | null>;
+  conversationRef?: React.RefObject<ExtendedConversation | null>;
   candidateName?: string;
   interviewId: string;
   problemDescription?: string;
@@ -50,6 +56,12 @@ export function Conversation({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const initRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
+  const isPaused = useRef(false);
+
+  // Update message handler ref when it changes
+  useEffect(() => {
+    messageHandlerRef.current = onMessage;
+  }, [onMessage]);
 
   const handleConnect = useCallback(() => {
     if (!initRef.current) return;
@@ -62,14 +74,19 @@ export function Conversation({
   const handleDisconnect = useCallback(() => {
     if (!initRef.current) return;
     console.log('Disconnected from Eleven Labs');
-    isActive.current = false;
-    startTimeRef.current = null;
-    setStatus('disconnected');
-    messageHandlerRef.current({ message: '', source: 'ai', clear: true });
+    // Only clear if we're not in a paused state (e.g., tab switch)
+    if (!isPaused.current) {
+      isActive.current = false;
+      startTimeRef.current = null;
+      setStatus('disconnected');
+      messageHandlerRef.current({ message: '', source: 'ai', clear: true });
+    } else {
+      setStatus('paused');
+    }
   }, []);
 
   const handleMessage = useCallback((message: unknown) => {
-    if (!initRef.current) return;
+    if (!initRef.current || isPaused.current) return;
 
     // Assume message structure has the following properties
     const typedMessage = message as {
@@ -120,9 +137,47 @@ export function Conversation({
 
   useEffect(() => {
     if (conversationRef?.current) {
-      Object.assign(conversationRef.current, internalConversationRef.current);
+      // Add pause and resume methods to the conversation ref
+      const enhancedConversation = {
+        ...internalConversationRef.current,
+        pause: () => {
+          console.log('Pausing conversation');
+          isPaused.current = true;
+          setStatus('paused');
+        },
+        resume: () => {
+          console.log('Resuming conversation');
+          isPaused.current = false;
+          if (isActive.current) {
+            setStatus('connected');
+          }
+        }
+      };
+      Object.assign(conversationRef.current, enhancedConversation);
     }
   }, [conversationRef]);
+
+  // Handle visibility changes to pause/resume conversation
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && isActive.current) {
+        // Pause conversation when tab is hidden
+        isPaused.current = true;
+        setStatus('paused');
+        console.log('Tab hidden, conversation paused');
+      } else if (document.visibilityState === 'visible' && isPaused.current && isActive.current) {
+        // Resume conversation when tab is visible again
+        isPaused.current = false;
+        setStatus('connected');
+        console.log('Tab visible, conversation resumed');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const getSignedUrl = async (): Promise<string> => {
     const response = await fetch('/api/get-signed-url');
@@ -139,6 +194,7 @@ export function Conversation({
       await navigator.mediaDevices.getUserMedia({ audio: true });
       messageHandlerRef.current({ message: '', source: 'ai', clear: true });
       initRef.current = true;
+      isPaused.current = false;
       const signedUrl = await getSignedUrl();
       await internalConversationRef.current.startSession({
         agentId: process.env.NEXT_PUBLIC_AGENT_ID,
@@ -153,6 +209,7 @@ export function Conversation({
       console.error('Failed to start conversation:', error);
       isActive.current = false;
       startTimeRef.current = null;
+      isPaused.current = false;
       setStatus('error');
     }
   }, [candidateName, interviewId, problemDescription]);
@@ -160,6 +217,7 @@ export function Conversation({
   const stopConversation = useCallback(async () => {
     if (!isActive.current) return;
     try {
+      isPaused.current = false;
       await internalConversationRef.current.endSession();
     } finally {
       isActive.current = false;
@@ -171,7 +229,7 @@ export function Conversation({
 
   useEffect(() => {
     let mounted = true;
-    if (mounted && autoStart && !isActive.current) {
+    if (mounted && autoStart && !isActive.current && !initRef.current) {
       startConversation();
     }
     return () => {
@@ -186,7 +244,7 @@ export function Conversation({
     <div className="flex flex-col items-center">
       <div className="flex flex-col items-center">
         <p className="text-sm text-muted-foreground">
-          Status: {status}. {isSpeaking ? 'Speaking' : 'Listening'}
+          Status: {status}. {isSpeaking && status === 'connected' ? 'Speaking' : 'Listening'}
         </p>
       </div>
     </div>
