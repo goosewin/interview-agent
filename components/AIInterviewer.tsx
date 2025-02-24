@@ -59,6 +59,7 @@ export default function AIInterviewer({ className }: AIInterviewerProps) {
 
     return () => {
       if (animationRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         cancelAnimationFrame(animationRef.current);
       }
     };

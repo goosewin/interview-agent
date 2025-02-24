@@ -106,6 +106,7 @@ export default function Interview() {
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
   // Device selection state
   const [videoDevices, setVideoDevices] = useState<DeviceInfo[]>([]);
@@ -250,6 +251,7 @@ export default function Interview() {
     }, 30000); // Every 30 seconds
 
     return () => clearInterval(heartbeatInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identifier, router]);
 
   // Cleanup media streams on unmount
@@ -403,6 +405,7 @@ export default function Interview() {
       toast.error('Failed to start recording. Please try refreshing the page.');
       throw error;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interview]);
 
   function handleStartInterview() {
@@ -581,11 +584,23 @@ export default function Interview() {
   }, [isInterviewStarted, interview, stopRecording, handleVoiceMessage]);
 
   const handleEndInterview = useCallback(async () => {
-    if (!interview || isSaving) return;
+    if (!interview || isSaving || isButtonDisabled) return;
 
     try {
+      setIsButtonDisabled(true);
       setIsSaving(true);
       toast.info('Saving interview data and generating evaluation...');
+
+      // Immediately end the voice conversation
+      if (conversationRef.current) {
+        try {
+          // Stop the conversation and disconnect from the voice API
+          await conversationRef.current.endSession();
+          console.log('Voice conversation ended');
+        } catch (error) {
+          console.error('Failed to end voice conversation:', error);
+        }
+      }
 
       // Save any pending messages
       const currentMessages = voiceMessagesRef.current;
@@ -605,7 +620,7 @@ export default function Interview() {
         recorderRef.current = null;
       }
 
-      // Save final code state and trigger evaluation workflow
+      // Save final code state and update status to completed
       await fetch(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -615,6 +630,9 @@ export default function Interview() {
           status: 'completed',
         }),
       });
+
+      // Add a small delay to ensure the status update is processed
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Trigger evaluation workflow with identifier
       const evalResponse = await fetch(`/api/interviews/${interview.identifier}/complete`, {
@@ -656,10 +674,12 @@ export default function Interview() {
     } catch (error) {
       console.error('Failed to end interview:', error);
       toast.error('Failed to end interview properly. Please try again.');
+      setIsButtonDisabled(false);
     } finally {
       setIsSaving(false);
     }
-  }, [interview, handleVoiceMessage, stream, router, language, isSaving, identifier]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interview, handleVoiceMessage, stream, router, language, isSaving, isButtonDisabled, identifier]);
 
   // Add beforeunload handler when saving
   useEffect(() => {
@@ -700,8 +720,6 @@ export default function Interview() {
       message: null,
     };
   }, [interview]);
-
-  console.log(interview);
 
   // Handle disconnection and reconnection
   useEffect(() => {
@@ -1141,8 +1159,9 @@ export default function Interview() {
                     size="lg"
                     onClick={handleEndInterview}
                     className="font-semibold"
+                    disabled={isSaving || isButtonDisabled}
                   >
-                    End Interview
+                    {isSaving ? 'Ending Interview...' : 'End Interview'}
                   </Button>
                 </div>
               </div>

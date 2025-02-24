@@ -11,7 +11,7 @@ const createInterviewSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     required_error: 'Difficulty is required',
   }),
-  problemId: z.string().optional(),
+  problemId: z.string().min(1, 'Problem is required'),
 });
 
 export async function GET() {
@@ -51,11 +51,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // If no problem is selected, get a random one of the specified difficulty
-    let problemId = validatedData.problemId;
     let problemDescription = '';
+    let problemId = validatedData.problemId;
 
-    if (!problemId) {
+    if (problemId === 'random') {
       const matchingProblems = problems.filter((p) => p.difficulty === validatedData.difficulty);
       if (matchingProblems.length === 0) {
         return NextResponse.json(

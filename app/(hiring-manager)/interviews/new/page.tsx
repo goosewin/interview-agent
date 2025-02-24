@@ -56,7 +56,9 @@ const formSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     required_error: 'Please select a difficulty level.',
   }),
-  problemId: z.string().optional(), // Optional, will use random if not provided
+  problemId: z.string({
+    required_error: 'Please select a problem.',
+  }),
 });
 
 const RANDOM_PROBLEM = 'random';
@@ -280,11 +282,11 @@ export default function NewInterview() {
             name="problemId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Problem (Optional)</FormLabel>
+                <FormLabel>Problem</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value || RANDOM_PROBLEM}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a problem (or leave empty for random)" />
+                      <SelectValue placeholder="Select a problem" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -299,8 +301,7 @@ export default function NewInterview() {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Optionally select a specific problem, or choose random to automatically assign one
-                  of the selected difficulty.
+                  Select a specific problem or choose random to automatically assign one of the selected difficulty.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

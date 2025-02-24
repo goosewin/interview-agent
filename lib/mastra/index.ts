@@ -8,6 +8,7 @@ type Workflows = { interviewEvaluationWorkflow: typeof interviewEvaluationWorkfl
 
 export const mastra = new Mastra<Agents, Workflows>({
   agents: { recruiterAgent },
-  logger: createLogger({ name: 'InterviewAgent', level: 'debug' }),
+  // info in prod, debug in dev
+  logger: createLogger({ name: 'InterviewAgent', level: process.env.NODE_ENV === 'production' ? 'info' : 'debug' }),
   workflows: { interviewEvaluationWorkflow },
 });
