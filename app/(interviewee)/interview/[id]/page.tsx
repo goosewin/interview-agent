@@ -861,8 +861,8 @@ export default function Interview() {
                 <p className="text-muted-foreground">
                   You were away for too long. The interview has been marked as abandoned.
                   <br />
-                  You have {minutes}:{seconds.toString().padStart(2, '0')} minutes to reconnect before the
-                  session is permanently closed.
+                  You have {minutes}:{seconds.toString().padStart(2, '0')} minutes to reconnect
+                  before the session is permanently closed.
                 </p>
                 <Button onClick={() => router.push('/')}>Return Home</Button>
               </div>
@@ -974,7 +974,7 @@ export default function Interview() {
                 className={cn(
                   'space-y-4',
                   (!selectedAudioDevice || !selectedPlaybackDevice) &&
-                  'pointer-events-none opacity-50'
+                    'pointer-events-none opacity-50'
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -1030,7 +1030,7 @@ export default function Interview() {
               className={cn(
                 'space-y-4',
                 (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) &&
-                'pointer-events-none opacity-50'
+                  'pointer-events-none opacity-50'
               )}
             >
               <div className="flex items-start space-x-3">

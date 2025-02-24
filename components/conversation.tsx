@@ -151,7 +151,7 @@ export function Conversation({
           if (isActive.current) {
             setStatus('connected');
           }
-        }
+        },
       };
       Object.assign(conversationRef.current, enhancedConversation);
     }
