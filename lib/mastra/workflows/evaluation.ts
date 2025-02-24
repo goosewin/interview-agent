@@ -161,12 +161,8 @@ const evaluateCommunicationSkills = new Step({
 const makeHiringDecision = new Step({
   id: 'makeHiringDecision',
   execute: async ({ context }) => {
-    const {
-      technicalEvaluation,
-      communicationEvaluation,
-      candidateData,
-      steps,
-    } = context as InterviewEvaluationContext;
+    const { technicalEvaluation, communicationEvaluation, candidateData, steps } =
+      context as InterviewEvaluationContext;
 
     const { interviewId } = context.triggerData;
     const gatherDataStep = steps.gatherInterviewData;
@@ -181,7 +177,7 @@ const makeHiringDecision = new Step({
         recommendation: 'no_hire' as const,
         overallScore: 0,
         reasoning: 'Unable to evaluate candidate due to incomplete interview data',
-        nextSteps: ['Schedule a new interview with proper problem description']
+        nextSteps: ['Schedule a new interview with proper problem description'],
       };
 
       // Store the evaluation even if minimal
@@ -194,14 +190,14 @@ const makeHiringDecision = new Step({
             codeQuality: 'Unable to evaluate',
             problemSolving: 'Unable to evaluate',
             technicalStrengths: [],
-            areasForImprovement: ['Complete interview with proper problem description']
+            areasForImprovement: ['Complete interview with proper problem description'],
           },
           communicationEvaluation: {
             communicationScore: 0,
             clarity: 'Unable to evaluate',
             collaboration: 'Unable to evaluate',
             communicationStrengths: [],
-            communicationWeaknesses: ['Complete interview with proper problem description']
+            communicationWeaknesses: ['Complete interview with proper problem description'],
           },
           hiringDecision,
           steps: context.steps,

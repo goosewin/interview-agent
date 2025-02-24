@@ -22,13 +22,13 @@ export async function POST(request: Request) {
     if (!identifier || !candidateId || !scheduledFor) {
       console.error('Missing required fields:', { identifier, candidateId, scheduledFor });
       return NextResponse.json(
-        { 
+        {
           error: 'Missing required fields',
           details: {
             identifier: !identifier ? 'Interview identifier is required' : null,
             candidateId: !candidateId ? 'Candidate ID is required' : null,
             scheduledFor: !scheduledFor ? 'Schedule time is required' : null,
-          }
+          },
         },
         { status: 400 }
       );
@@ -38,9 +38,9 @@ export async function POST(request: Request) {
     if (!candidate) {
       console.error('Candidate not found:', { candidateId, userId });
       return NextResponse.json(
-        { 
+        {
           error: 'Candidate not found',
-          details: { candidateId }
+          details: { candidateId },
         },
         { status: 404 }
       );
@@ -49,9 +49,9 @@ export async function POST(request: Request) {
     if (!candidate.email) {
       console.error('Candidate email not found:', { candidateId, name: candidate.name });
       return NextResponse.json(
-        { 
+        {
           error: 'Candidate email not found',
-          details: { candidateId, name: candidate.name }
+          details: { candidateId, name: candidate.name },
         },
         { status: 400 }
       );

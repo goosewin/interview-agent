@@ -13,8 +13,12 @@ export async function POST(req: Request) {
     }
 
     // Check if we need to use the identifier or UUID
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(interviewId);
-    const interview = isUUID ? await getInterview(interviewId) : await getInterviewByIdentifier(interviewId);
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      interviewId
+    );
+    const interview = isUUID
+      ? await getInterview(interviewId)
+      : await getInterviewByIdentifier(interviewId);
     if (!interview) {
       return new Response(JSON.stringify({ error: 'Interview not found' }), {
         status: 404,
@@ -53,8 +57,12 @@ export async function GET(req: Request) {
     }
 
     // Check if we need to use the identifier or UUID
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(interviewId);
-    const interview = isUUID ? await getInterview(interviewId) : await getInterviewByIdentifier(interviewId);
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      interviewId
+    );
+    const interview = isUUID
+      ? await getInterview(interviewId)
+      : await getInterviewByIdentifier(interviewId);
     if (!interview) {
       return new Response(JSON.stringify({ error: 'Interview not found' }), {
         status: 404,

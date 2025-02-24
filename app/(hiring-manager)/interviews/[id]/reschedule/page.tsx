@@ -27,7 +27,7 @@ import * as z from 'zod';
 
 type Interview = {
   id: string;
-  identifier: string; 
+  identifier: string;
   candidateId: string;
   scheduledFor: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'cancelled';
@@ -141,7 +141,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
       }
 
       const emailPayload = {
-        identifier: interview.identifier,  // Use the short identifier instead of UUID
+        identifier: interview.identifier, // Use the short identifier instead of UUID
         candidateId: interview.candidateId,
         scheduledFor: `${values.date}T${values.time}`,
       };
@@ -158,7 +158,7 @@ export default function RescheduleInterview({ params }: { params: Promise<{ id: 
           status: emailResponse.status,
           statusText: emailResponse.statusText,
           error: errorData,
-          requestPayload: emailPayload
+          requestPayload: emailPayload,
         });
       } else {
         console.log('Email sent successfully');

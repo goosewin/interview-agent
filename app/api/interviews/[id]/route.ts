@@ -41,18 +41,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       ...interview,
       candidateName: interview.candidate.name,
       candidateEmail: interview.candidate.email,
-      evaluation: evaluation ? {
-        technicalScore: evaluation.technicalScore,
-        communicationScore: evaluation.communicationScore,
-        overallScore: evaluation.overallScore,
-        recommendation: evaluation.recommendation,
-        reasoning: evaluation.reasoning,
-        technicalStrengths: evaluation.technicalStrengths,
-        technicalWeaknesses: evaluation.technicalWeaknesses,
-        communicationStrengths: evaluation.communicationStrengths,
-        communicationWeaknesses: evaluation.communicationWeaknesses,
-        nextSteps: evaluation.nextSteps,
-      } : undefined,
+      evaluation: evaluation
+        ? {
+            technicalScore: evaluation.technicalScore,
+            communicationScore: evaluation.communicationScore,
+            overallScore: evaluation.overallScore,
+            recommendation: evaluation.recommendation,
+            reasoning: evaluation.reasoning,
+            technicalStrengths: evaluation.technicalStrengths,
+            technicalWeaknesses: evaluation.technicalWeaknesses,
+            communicationStrengths: evaluation.communicationStrengths,
+            communicationWeaknesses: evaluation.communicationWeaknesses,
+            nextSteps: evaluation.nextSteps,
+          }
+        : undefined,
     };
 
     return Response.json(transformedInterview);

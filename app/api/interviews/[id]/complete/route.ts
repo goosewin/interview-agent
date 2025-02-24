@@ -6,10 +6,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json(
-        { error: 'Missing interview identifier' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing interview identifier' }, { status: 400 });
     }
 
     // Add timeout to ensure the request doesn't hang indefinitely
@@ -18,10 +15,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
 
     // Race the completion handler against the timeout
-    const result = await Promise.race([
-      handleInterviewCompletion(id),
-      timeoutPromise
-    ]);
+    const result = await Promise.race([handleInterviewCompletion(id), timeoutPromise]);
 
     return NextResponse.json({ success: true, result });
   } catch (error) {
@@ -43,9 +37,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       }
     }
 
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: statusCode }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

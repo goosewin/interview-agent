@@ -50,11 +50,7 @@ export function EvaluationCharts({
               <BarChart data={chartData}>
                 <XAxis dataKey="category" />
                 <YAxis domain={[0, 10]} />
-                <Bar
-                  dataKey="score"
-                  fill="hsl(var(--primary))"
-                  radius={[4, 4, 0, 0]}
-                />
+                <Bar dataKey="score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -78,7 +74,9 @@ export function EvaluationCharts({
               <h4 className="font-medium">Areas for Improvement</h4>
               <ul className="mt-2 list-inside list-disc">
                 {technicalWeaknesses.map((weakness, i) => (
-                  <li key={i} className="text-muted-foreground">{weakness}</li>
+                  <li key={i} className="text-muted-foreground">
+                    {weakness}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -101,7 +99,9 @@ export function EvaluationCharts({
               <h4 className="font-medium">Areas for Improvement</h4>
               <ul className="mt-2 list-inside list-disc">
                 {communicationWeaknesses.map((weakness, i) => (
-                  <li key={i} className="text-muted-foreground">{weakness}</li>
+                  <li key={i} className="text-muted-foreground">
+                    {weakness}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -110,4 +110,4 @@ export function EvaluationCharts({
       </div>
     </div>
   );
-} 
+}

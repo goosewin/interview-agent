@@ -40,19 +40,16 @@ export default function ReviewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-2">
-            <ChartContainer
-              config={chartConfig}
-              className="mx-auto aspect-square h-[450px]"
-            >
-              <RadarChart 
-                data={technicalData} 
+            <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[450px]">
+              <RadarChart
+                data={technicalData}
                 margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
                 outerRadius="70%"
               >
                 <Tooltip content={<ChartTooltipContent />} />
-                <PolarAngleAxis 
-                  dataKey="criteria" 
-                  tick={{ 
+                <PolarAngleAxis
+                  dataKey="criteria"
+                  tick={{
                     fontSize: 14,
                     fill: 'hsl(var(--foreground))',
                   }}
@@ -79,19 +76,16 @@ export default function ReviewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-2">
-            <ChartContainer
-              config={chartConfig}
-              className="mx-auto aspect-square h-[450px]"
-            >
-              <RadarChart 
-                data={communicationData} 
+            <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[450px]">
+              <RadarChart
+                data={communicationData}
                 margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
                 outerRadius="70%"
               >
                 <Tooltip content={<ChartTooltipContent />} />
-                <PolarAngleAxis 
-                  dataKey="criteria" 
-                  tick={{ 
+                <PolarAngleAxis
+                  dataKey="criteria"
+                  tick={{
                     fontSize: 14,
                     fill: 'hsl(var(--foreground))',
                   }}

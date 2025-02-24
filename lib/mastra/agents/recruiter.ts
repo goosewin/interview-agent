@@ -34,10 +34,11 @@ const getInterviewData = createTool({
     }
 
     // Construct transcript from messages
-    const transcript = interview.messages?.map(msg => ({
-      message: msg.message,
-      source: msg.role === 'agent' ? 'ai' : 'user'
-    })) || [];
+    const transcript =
+      interview.messages?.map((msg) => ({
+        message: msg.message,
+        source: msg.role === 'agent' ? 'ai' : 'user',
+      })) || [];
 
     console.log('[getInterviewData] Constructed transcript with', transcript.length, 'messages');
 
@@ -101,12 +102,8 @@ const storeEvaluation = createTool({
     hiringDecision: HiringDecisionSchema,
   }),
   execute: async (context) => {
-    const {
-      candidateId,
-      technicalEvaluation,
-      communicationEvaluation,
-      hiringDecision,
-    } = context.context;
+    const { candidateId, technicalEvaluation, communicationEvaluation, hiringDecision } =
+      context.context;
 
     const { interviewId } = context.context.triggerData;
 
@@ -132,7 +129,8 @@ const storeEvaluation = createTool({
       console.log('[storeEvaluation] Successfully stored evaluation');
 
       // Update interview status to indicate evaluation is complete
-      await db.update(interviews)
+      await db
+        .update(interviews)
         .set({ status: 'completed' })
         .where(eq(interviews.id, interviewId));
 

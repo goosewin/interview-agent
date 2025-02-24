@@ -143,12 +143,8 @@
           "name": "code_submissions_interview_id_interviews_id_fk",
           "tableFrom": "code_submissions",
           "tableTo": "interviews",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["interview_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -263,12 +259,8 @@
           "name": "evaluations_interview_id_interviews_id_fk",
           "tableFrom": "evaluations",
           "tableTo": "interviews",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["interview_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -276,12 +268,8 @@
           "name": "evaluations_candidate_id_candidates_id_fk",
           "tableFrom": "evaluations",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -445,12 +433,8 @@
           "name": "interviews_candidate_id_candidates_id_fk",
           "tableFrom": "interviews",
           "tableTo": "candidates",
-          "columnsFrom": [
-            "candidate_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["candidate_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -458,12 +442,8 @@
           "name": "interviews_problem_id_problems_id_fk",
           "tableFrom": "interviews",
           "tableTo": "problems",
-          "columnsFrom": [
-            "problem_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["problem_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -473,9 +453,7 @@
         "interviews_identifier_unique": {
           "name": "interviews_identifier_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "identifier"
-          ]
+          "columns": ["identifier"]
         }
       },
       "policies": {},
@@ -525,12 +503,8 @@
           "name": "messages_interview_id_interviews_id_fk",
           "tableFrom": "messages",
           "tableTo": "interviews",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["interview_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -629,13 +603,7 @@
     "public.interview_status": {
       "name": "interview_status",
       "schema": "public",
-      "values": [
-        "not_started",
-        "in_progress",
-        "completed",
-        "cancelled",
-        "abandoned"
-      ]
+      "values": ["not_started", "in_progress", "completed", "cancelled", "abandoned"]
     }
   },
   "schemas": {},

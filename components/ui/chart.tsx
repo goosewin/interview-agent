@@ -12,21 +12,19 @@ export type ChartConfig = Record<
 >;
 
 interface ChartContainerProps extends HTMLAttributes<HTMLDivElement> {
-  config?: ChartConfig;  
+  config?: ChartConfig;
   children: ReactElement;
 }
 
-export function ChartContainer({
-  children,
-  className,
-  ...props
-}: ChartContainerProps) {
+export function ChartContainer({ children, className, ...props }: ChartContainerProps) {
   return (
     <div
       className={className}
-      style={{
-        '--chart-1': 'var(--primary)',
-      } as CSSProperties}
+      style={
+        {
+          '--chart-1': 'var(--primary)',
+        } as CSSProperties
+      }
       {...props}
     >
       <ResponsiveContainer width="100%" height="100%">
@@ -59,9 +57,7 @@ export function ChartTooltip({ active, payload }: ChartTooltipProps) {
             className="h-1.5 w-1.5 rounded-full"
             style={{ background: 'var(--color-desktop)' }}
           />
-          <span className="text-[0.70rem] tabular-nums">
-            {payload[0]?.value}
-          </span>
+          <span className="text-[0.70rem] tabular-nums">{payload[0]?.value}</span>
         </div>
       </div>
     </div>

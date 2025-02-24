@@ -14,12 +14,14 @@ export async function handleInterviewCompletion(identifier: string) {
       interview = await getInterviewByIdentifier(identifier);
 
       if (!interview) {
-        console.log(`[handleInterviewCompletion] Interview not found, retrying... (${retries} attempts left)`);
+        console.log(
+          `[handleInterviewCompletion] Interview not found, retrying... (${retries} attempts left)`
+        );
         retries--;
 
         if (retries > 0) {
           // Wait before retrying
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       }
     } catch (error) {
@@ -28,15 +30,21 @@ export async function handleInterviewCompletion(identifier: string) {
 
       if (retries > 0) {
         // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
   }
 
-  console.log('[handleInterviewCompletion] Interview lookup result:', interview ? 'found' : 'not found');
+  console.log(
+    '[handleInterviewCompletion] Interview lookup result:',
+    interview ? 'found' : 'not found'
+  );
 
   if (!interview) {
-    console.error('[handleInterviewCompletion] Interview not found for identifier after retries:', identifier);
+    console.error(
+      '[handleInterviewCompletion] Interview not found for identifier after retries:',
+      identifier
+    );
     throw new Error('Interview not found');
   }
 

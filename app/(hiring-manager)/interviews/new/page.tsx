@@ -301,7 +301,8 @@ export default function NewInterview() {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Select a specific problem or choose random to automatically assign one of the selected difficulty.
+                  Select a specific problem or choose random to automatically assign one of the
+                  selected difficulty.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

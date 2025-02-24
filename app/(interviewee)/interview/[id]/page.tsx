@@ -679,7 +679,16 @@ export default function Interview() {
       setIsSaving(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interview, handleVoiceMessage, stream, router, language, isSaving, isButtonDisabled, identifier]);
+  }, [
+    interview,
+    handleVoiceMessage,
+    stream,
+    router,
+    language,
+    isSaving,
+    isButtonDisabled,
+    identifier,
+  ]);
 
   // Add beforeunload handler when saving
   useEffect(() => {
@@ -732,7 +741,7 @@ export default function Interview() {
         setReconnectDeadline(deadline);
         setIsReconnecting(true);
         setShowCheatingWarning(true);
-        setCheatingAttempts(prev => prev + 1);
+        setCheatingAttempts((prev) => prev + 1);
 
         // Log cheating attempt
         try {
@@ -742,7 +751,7 @@ export default function Interview() {
             body: JSON.stringify({
               type: 'tab_switch',
               timestamp: new Date().toISOString(),
-              attemptNumber: cheatingAttempts + 1
+              attemptNumber: cheatingAttempts + 1,
             }),
           });
         } catch (error) {
@@ -921,7 +930,7 @@ export default function Interview() {
                 className={cn(
                   'space-y-4',
                   (!selectedAudioDevice || !selectedPlaybackDevice) &&
-                  'pointer-events-none opacity-50'
+                    'pointer-events-none opacity-50'
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -977,7 +986,7 @@ export default function Interview() {
               className={cn(
                 'space-y-4',
                 (!selectedVideoDevice || !selectedAudioDevice || !selectedPlaybackDevice) &&
-                'pointer-events-none opacity-50'
+                  'pointer-events-none opacity-50'
               )}
             >
               <div className="flex items-start space-x-3">
@@ -1047,9 +1056,14 @@ export default function Interview() {
             <DialogTitle className="text-destructive">Warning: Cheating Detected</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p>You have left the interview tab. This action is considered a cheating attempt and will be recorded in your performance report.</p>
+            <p>
+              You have left the interview tab. This action is considered a cheating attempt and will
+              be recorded in your performance report.
+            </p>
             <p className="text-sm text-muted-foreground">Number of attempts: {cheatingAttempts}</p>
-            <p className="text-sm font-semibold text-destructive">Please return to the interview immediately and refrain from switching tabs or windows.</p>
+            <p className="text-sm font-semibold text-destructive">
+              Please return to the interview immediately and refrain from switching tabs or windows.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
@@ -1077,7 +1091,9 @@ export default function Interview() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Camera View */}
                 <Card className="p-4">
-                  <div className="text-sm font-bold truncate">{interview.candidateName || 'Candidate'}</div>
+                  <div className="truncate text-sm font-bold">
+                    {interview.candidateName || 'Candidate'}
+                  </div>
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
                     <video
                       ref={videoRef}
@@ -1090,7 +1106,7 @@ export default function Interview() {
                 </Card>
 
                 <Card className="p-4">
-                  <div className="text-sm font-bold truncate">Melody</div>
+                  <div className="truncate text-sm font-bold">Melody</div>
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-black">
                     <Image
                       src="/interviewer.png"

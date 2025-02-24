@@ -67,14 +67,20 @@ function transformEvaluationData(evaluation: NonNullable<Interview['evaluation']
       { criteria: 'Overall Score', score: Math.max(1, Number(evaluation.technicalScore)) },
       { criteria: 'Code Quality', score: Math.max(1, Number(evaluation.technicalScore) * 0.8) },
       { criteria: 'Problem Solving', score: Math.max(1, Number(evaluation.technicalScore) * 0.9) },
-      { criteria: 'Technical Accuracy', score: Math.max(1, Number(evaluation.technicalScore) * 0.85) },
+      {
+        criteria: 'Technical Accuracy',
+        score: Math.max(1, Number(evaluation.technicalScore) * 0.85),
+      },
       { criteria: 'Edge Cases', score: Math.max(1, Number(evaluation.technicalScore) * 0.7) },
       { criteria: 'Time/Space', score: Math.max(1, Number(evaluation.technicalScore) * 0.75) },
     ],
     communicationData: [
       { criteria: 'Overall Score', score: Math.max(1, Number(evaluation.communicationScore)) },
       { criteria: 'Clarity', score: Math.max(1, Number(evaluation.communicationScore) * 0.9) },
-      { criteria: 'Requirements', score: Math.max(1, Number(evaluation.communicationScore) * 0.85) },
+      {
+        criteria: 'Requirements',
+        score: Math.max(1, Number(evaluation.communicationScore) * 0.85),
+      },
       { criteria: 'Questions', score: Math.max(1, Number(evaluation.communicationScore) * 0.8) },
       { criteria: 'Explanation', score: Math.max(1, Number(evaluation.communicationScore) * 0.75) },
       { criteria: 'Conduct', score: Math.max(1, Number(evaluation.communicationScore) * 0.95) },
@@ -133,7 +139,9 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
   }
 
   // Transform evaluation data for charts
-  const evaluationData = interview.evaluation ? transformEvaluationData(interview.evaluation) : null;
+  const evaluationData = interview.evaluation
+    ? transformEvaluationData(interview.evaluation)
+    : null;
 
   return (
     <div className="container mx-auto space-y-8 p-8">
@@ -232,14 +240,16 @@ export default function InterviewDetails({ params }: { params: Promise<{ id: str
                     {messages.map((message, index) => (
                       <div
                         key={index}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'
-                          }`}
+                        className={`flex ${
+                          message.role === 'user' ? 'justify-end' : 'justify-start'
+                        }`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-lg p-4 ${message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground'
-                            }`}
+                          className={`max-w-[80%] rounded-lg p-4 ${
+                            message.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
+                          }`}
                         >
                           <div className="mb-1 text-xs opacity-70">
                             {message.role === 'user' ? 'Candidate' : 'AI Interviewer'}
